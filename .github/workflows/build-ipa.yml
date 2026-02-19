@@ -39,11 +39,25 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen
 
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/SourcePackages
+          key: spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-
+
       - name: Resolve SPM dependencies
         run: |
           xcodebuild -resolvePackageDependencies \
             -scheme "$SCHEME" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages"
+
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: derived-${{ hashFiles('Package.resolved') }}-${{ github.sha }}
+          restore-keys: derived-${{ hashFiles('Package.resolved') }}-
 
       - name: Archive (unsigned)
         run: |
@@ -72,13 +86,17 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Build #${{ github.run_number }}
-          body: |
-            Unsigned IPA build from `${{ github.ref_name }}` @ `${{ github.sha }}`
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BUILD_DATE=$(date -u +%Y%m%d)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          TAG="build-${BUILD_DATE}-${SHORT_SHA}"
+          TITLE="Build ${BUILD_DATE} (${SHORT_SHA})"
 
-            Re-sign with AltStore or Sideloadly to install on device.
-          files: build/ElementX-unsigned.ipa
-          make_latest: true
+          gh release create "$TAG" build/ElementX-unsigned.ipa \
+            --title "$TITLE" \
+            --notes "Unsigned IPA build from \`${{ github.ref_name }}\` @ \`${SHORT_SHA}\`
+
+          Re-sign with AltStore or Sideloadly to install on device." \
+            --latest
