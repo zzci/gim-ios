@@ -60,26 +60,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .weakAssign(to: \.state.userDisplayName, on: self)
             .store(in: &cancellables)
         
-        userSession.sessionSecurityStatePublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] securityState in
-                guard let self else { return }
-                
-                switch securityState.recoveryState {
-                case .disabled:
-                    state.requiresExtraAccountSetup = true
-                    if !state.securityBannerMode.isDismissed {
-                        state.securityBannerMode = .show(.setUpRecovery)
-                    }
-                case .incomplete:
-                    state.requiresExtraAccountSetup = true
-                    state.securityBannerMode = .show(.recoveryOutOfSync)
-                default:
-                    state.securityBannerMode = .none
-                    state.requiresExtraAccountSetup = false
-                }
-            }
-            .store(in: &cancellables)
+        // Disabled: SSSS/recovery setup banners are not used in this build.
+        // The security banner and extra account setup prompts are suppressed.
+        state.securityBannerMode = .none
+        state.requiresExtraAccountSetup = false
         
         userSession.sessionSecurityStatePublisher
             .receive(on: DispatchQueue.main)
