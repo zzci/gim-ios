@@ -20,7 +20,6 @@ jobs:
     env:
       SCHEME: ElementX
       ARCHIVE_PATH: build/ElementX.xcarchive
-      SPM_PACKAGES_PATH: ${{ runner.temp }}/SourcePackages
 
     steps:
       - name: Checkout
@@ -44,7 +43,7 @@ jobs:
         run: |
           xcodebuild -resolvePackageDependencies \
             -scheme "$SCHEME" \
-            -clonedSourcePackagesDirPath "$SPM_PACKAGES_PATH"
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages"
 
       - name: Archive (unsigned)
         run: |
@@ -53,7 +52,7 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$ARCHIVE_PATH" \
-            -clonedSourcePackagesDirPath "$SPM_PACKAGES_PATH" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
