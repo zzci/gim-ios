@@ -136,6 +136,8 @@ enum A11yIdentifiers {
         let signInWithQr = "authentication_start-sign_in_with_qr"
         let appVersion = "authentication_start-app_version"
         let hidden = "authentication_start-hidden"
+        let homeserver = "authentication_start-homeserver"
+        let homeserverConfirm = "authentication_start-homeserver_confirm"
     }
     
     struct ReportContent {

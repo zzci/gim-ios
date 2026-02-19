@@ -33,15 +33,26 @@ enum AuthenticationStartScreenViewModelAction: Equatable {
 struct AuthenticationStartScreenViewState: BindableState {
     /// The presentation anchor used for OIDC authentication.
     var window: UIWindow?
-    
+
     let serverName: String?
     let showCreateAccountButton: Bool
     let showQRCodeLoginButton: Bool
-    
+
     let hideBrandChrome: Bool
-    
+
+    /// Whether to show the homeserver address field on the start screen.
+    let showHomeserverField: Bool
+
     var bindings = AuthenticationStartScreenViewStateBindings()
-    
+
+    /// An error message to be shown in the homeserver text field footer.
+    var homeserverFooterErrorMessage: String?
+
+    /// Whether the homeserver text field is showing an error.
+    var isShowingHomeserverError: Bool {
+        homeserverFooterErrorMessage != nil
+    }
+
     var loginButtonTitle: String {
         if let serverName {
             L10n.screenOnboardingSignInTo(serverName)
@@ -54,19 +65,30 @@ struct AuthenticationStartScreenViewState: BindableState {
 }
 
 struct AuthenticationStartScreenViewStateBindings {
+    /// The homeserver address input by the user.
+    var homeserverAddress = ""
     var alertInfo: AlertInfo<AuthenticationStartScreenAlertType>?
 }
 
-enum AuthenticationStartScreenAlertType {
+enum AuthenticationStartScreenAlertType: Hashable {
     case genericError
+    case invalidWellKnown(String)
+    case slidingSync
+    case loginNotSupported
+    case elementProRequired(serverName: String)
 }
 
 enum AuthenticationStartScreenViewAction {
     /// Updates the window used as the OIDC presentation anchor.
     case updateWindow(UIWindow)
-    
+
     case loginWithQR
     case login
     case register
     case reportProblem
+
+    /// Clear any homeserver footer errors when editing the text field.
+    case clearHomeserverError
+    /// The user tapped the login button after entering a custom homeserver.
+    case loginWithHomeserver
 }

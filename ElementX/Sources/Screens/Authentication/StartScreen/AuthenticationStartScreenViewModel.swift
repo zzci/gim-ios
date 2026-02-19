@@ -16,11 +16,11 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
     private let provisioningParameters: AccountProvisioningParameters?
     private let appSettings: AppSettings
     private let userIndicatorController: UserIndicatorControllerProtocol
-    
+
     private let canReportProblem: Bool
-    
+
     private var actionsSubject: PassthroughSubject<AuthenticationStartScreenViewModelAction, Never> = .init()
-    
+
     var actions: AnyPublisher<AuthenticationStartScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
@@ -35,30 +35,33 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         self.appSettings = appSettings
         self.userIndicatorController = userIndicatorController
         canReportProblem = isBugReportServiceEnabled
-        
+
         let isQRCodeScanningSupported = !ProcessInfo.processInfo.isiOSAppOnMac
-        
+
+        let showHomeserverField = appSettings.allowOtherAccountProviders && provisioningParameters == nil
+        let defaultHomeserver = authenticationService.homeserver.value.address
+
         let initialViewState = if !appSettings.allowOtherAccountProviders {
-            // We don't show the create account button when custom providers are disallowed.
-            // The assumption here being that if you're running a custom app, your users will already be created.
             AuthenticationStartScreenViewState(serverName: appSettings.accountProviders.count == 1 ? appSettings.accountProviders[0] : nil,
                                                showCreateAccountButton: false,
                                                showQRCodeLoginButton: isQRCodeScanningSupported,
-                                               hideBrandChrome: appSettings.hideBrandChrome)
+                                               hideBrandChrome: appSettings.hideBrandChrome,
+                                               showHomeserverField: false)
         } else if let provisioningParameters {
-            // We only show the "Sign in to …" button when using a provisioning link.
             AuthenticationStartScreenViewState(serverName: provisioningParameters.accountProvider,
                                                showCreateAccountButton: false,
                                                showQRCodeLoginButton: false,
-                                               hideBrandChrome: appSettings.hideBrandChrome)
+                                               hideBrandChrome: appSettings.hideBrandChrome,
+                                               showHomeserverField: false)
         } else {
-            // The default configuration.
             AuthenticationStartScreenViewState(serverName: nil,
                                                showCreateAccountButton: appSettings.showCreateAccountButton,
                                                showQRCodeLoginButton: isQRCodeScanningSupported,
-                                               hideBrandChrome: appSettings.hideBrandChrome)
+                                               hideBrandChrome: appSettings.hideBrandChrome,
+                                               showHomeserverField: showHomeserverField,
+                                               bindings: .init(homeserverAddress: defaultHomeserver))
         }
-        
+
         super.init(initialViewState: initialViewState)
     }
 
@@ -77,11 +80,15 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
             }
+        case .clearHomeserverError:
+            clearHomeserverError()
+        case .loginWithHomeserver:
+            Task { await loginWithCustomHomeserver() }
         }
     }
-    
+
     // MARK: - Private
-    
+
     private func login() async {
         if let serverName = state.serverName {
             await configureAccountProvider(serverName, loginHint: provisioningParameters?.loginHint)
@@ -89,49 +96,130 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             actionsSubject.send(.login) // No need to configure anything here, continue the flow.
         }
     }
-    
+
+    private func loginWithCustomHomeserver() async {
+        let homeserverAddress = state.bindings.homeserverAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !homeserverAddress.isEmpty else { return }
+
+        startLoading()
+        defer { stopLoading() }
+
+        switch await authenticationService.configure(for: homeserverAddress, flow: .login) {
+        case .success:
+            guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
+                actionsSubject.send(.loginDirectlyWithPassword(loginHint: nil))
+                return
+            }
+
+            guard let window = state.window else {
+                displayError(.genericError)
+                return
+            }
+
+            switch await authenticationService.urlForOIDCLogin(loginHint: nil) {
+            case .success(let oidcData):
+                actionsSubject.send(.loginDirectlyWithOIDC(data: oidcData, window: window))
+            case .failure:
+                displayError(.genericError)
+            }
+        case .failure(let error):
+            handleHomeserverError(error)
+        }
+    }
+
     private func configureAccountProvider(_ accountProvider: String, loginHint: String? = nil) async {
         startLoading()
         defer { stopLoading() }
-        
+
         guard case .success = await authenticationService.configure(for: accountProvider, flow: .login) else {
-            // As the server was provisioned, we don't worry about the specifics and show a generic error to the user.
-            displayError()
+            displayError(.genericError)
             return
         }
-        
+
         guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
             actionsSubject.send(.loginDirectlyWithPassword(loginHint: loginHint))
             return
         }
-        
+
         guard let window = state.window else {
-            displayError()
+            displayError(.genericError)
             return
         }
-        
+
         switch await authenticationService.urlForOIDCLogin(loginHint: loginHint) {
         case .success(let oidcData):
             actionsSubject.send(.loginDirectlyWithOIDC(data: oidcData, window: window))
         case .failure:
-            displayError()
+            displayError(.genericError)
         }
     }
-    
+
+    private func handleHomeserverError(_ error: AuthenticationServiceError) {
+        switch error {
+        case .invalidServer, .invalidHomeserverAddress:
+            showHomeserverFooterError(L10n.screenChangeServerErrorInvalidHomeserver)
+        case .invalidWellKnown(let error):
+            displayError(.invalidWellKnown(error))
+        case .slidingSyncNotAvailable:
+            displayError(.slidingSync)
+        case .loginNotSupported:
+            displayError(.loginNotSupported)
+        case .elementProRequired(let serverName):
+            displayError(.elementProRequired(serverName: serverName))
+        default:
+            displayError(.genericError)
+        }
+    }
+
+    private func showHomeserverFooterError(_ message: String) {
+        withElementAnimation {
+            state.homeserverFooterErrorMessage = message
+        }
+    }
+
+    private func clearHomeserverError() {
+        guard state.homeserverFooterErrorMessage != nil else { return }
+        withElementAnimation { state.homeserverFooterErrorMessage = nil }
+    }
+
     private let loadingIndicatorID = "\(AuthenticationStartScreenViewModel.self)-Loading"
-    
+
     private func startLoading() {
         userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorID,
                                                               type: .modal,
                                                               title: L10n.commonLoading,
                                                               persistent: true))
     }
-    
+
     private func stopLoading() {
         userIndicatorController.retractIndicatorWithId(loadingIndicatorID)
     }
-    
-    private func displayError() {
-        state.bindings.alertInfo = AlertInfo(id: .genericError)
+
+    private func displayError(_ type: AuthenticationStartScreenAlertType) {
+        switch type {
+        case .invalidWellKnown(let error):
+            state.bindings.alertInfo = AlertInfo(id: .invalidWellKnown(error),
+                                                 title: L10n.commonServerNotSupported,
+                                                 message: L10n.screenChangeServerErrorInvalidWellKnown(error))
+        case .slidingSync:
+            let nonBreakingAppName = InfoPlistReader.main.bundleDisplayName.replacingOccurrences(of: " ", with: "\u{00A0}")
+            state.bindings.alertInfo = AlertInfo(id: .slidingSync,
+                                                 title: L10n.commonServerNotSupported,
+                                                 message: L10n.screenChangeServerErrorNoSlidingSyncMessage(nonBreakingAppName))
+        case .loginNotSupported:
+            state.bindings.alertInfo = AlertInfo(id: .loginNotSupported,
+                                                 title: L10n.commonServerNotSupported,
+                                                 message: L10n.screenLoginErrorUnsupportedAuthentication)
+        case .elementProRequired(let serverName):
+            state.bindings.alertInfo = AlertInfo(id: .elementProRequired(serverName: serverName),
+                                                 title: L10n.screenChangeServerErrorElementProRequiredTitle,
+                                                 message: L10n.screenChangeServerErrorElementProRequiredMessage(serverName),
+                                                 primaryButton: .init(title: L10n.screenChangeServerErrorElementProRequiredActionIos) {
+                                                     UIApplication.shared.open(self.appSettings.elementProAppStoreURL)
+                                                 },
+                                                 secondaryButton: .init(title: L10n.actionCancel, role: .cancel, action: nil))
+        case .genericError:
+            state.bindings.alertInfo = AlertInfo(id: .genericError)
+        }
     }
 }
