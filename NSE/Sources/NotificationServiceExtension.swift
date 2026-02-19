@@ -30,7 +30,7 @@ import UserNotifications
 // notification.
 
 class NotificationServiceExtension: UNNotificationServiceExtension {
-    static let receivedWhileOfflineNotificationID = "io.element.elementx.receivedWhileOfflineNotification"
+    static let receivedWhileOfflineNotificationID = "im.g.message.receivedWhileOfflineNotification"
     
     private static var targetConfiguration: Target.ConfigurationResult?
     

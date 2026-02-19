@@ -88,7 +88,7 @@ class BugReportService: NSObject, BugReportServiceProtocol {
         
         params.append(contentsOf: defaultParams)
         
-        if InfoPlistReader.main.baseBundleIdentifier == "io.element.elementx.nightly" {
+        if InfoPlistReader.main.baseBundleIdentifier == "im.g.message.nightly" {
             bugReport.githubLabels.append("Nightly")
         }
         
