@@ -6,18 +6,26 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import AuthenticationServices
+import UIKit
+import WebKit
 
-/// Presents a web authentication session for an OIDC request.
+/// Presents a WKWebView for an OIDC login request.
+///
+/// Uses a persistent WKWebsiteDataStore so that cookies are stored within the
+/// app's sandbox. This means the OIDC provider's session cookie persists across
+/// app launches — if the user needs to re-authenticate, they won't have to
+/// re-enter credentials. Cookies are isolated from Safari and automatically
+/// deleted when the app is uninstalled.
 @MainActor
 class OIDCAuthenticationPresenter: NSObject {
     private let authenticationService: AuthenticationServiceProtocol
     private let oidcRedirectURL: URL
     private let presentationAnchor: UIWindow
     private let userIndicatorController: UserIndicatorControllerProtocol
-    
-    private var activeSession: ASWebAuthenticationSession?
-    
+
+    private weak var presentedController: UIViewController?
+    private var authContinuation: CheckedContinuation<(URL?, Bool), Never>?
+
     init(authenticationService: AuthenticationServiceProtocol,
          oidcRedirectURL: URL,
          presentationAnchor: UIWindow,
@@ -28,51 +36,48 @@ class OIDCAuthenticationPresenter: NSObject {
         self.userIndicatorController = userIndicatorController
         super.init()
     }
-    
-    /// Presents a web authentication session for the supplied data.
+
+    /// Presents a WKWebView for the supplied OIDC data and waits for the redirect callback.
     func authenticate(using oidcData: OIDCAuthorizationDataProxy) async -> Result<UserSessionProtocol, AuthenticationServiceError> {
-        let (url, error) = await withCheckedContinuation { continuation in
-            let session = ASWebAuthenticationSession(url: oidcData.url, callback: .oidcRedirectURL(oidcRedirectURL)) { url, error in
-                continuation.resume(returning: (url, error))
+        let (callbackURL, cancelled) = await withCheckedContinuation { (continuation: CheckedContinuation<(URL?, Bool), Never>) in
+            authContinuation = continuation
+
+            let configuration = WKWebViewConfiguration()
+            configuration.websiteDataStore = .default()
+
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.navigationDelegate = self
+            webView.customUserAgent = UserAgentBuilder.makeASCIIUserAgent()
+
+            let viewController = OIDCWebViewController(webView: webView)
+            viewController.onDismiss = { [weak self] in
+                guard let self, let authContinuation else { return }
+                self.authContinuation = nil
+                authContinuation.resume(returning: (nil, true))
             }
-            
-            session.prefersEphemeralWebBrowserSession = false
-            session.presentationContextProvider = self
-            session.additionalHeaderFields = [
-                "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
-            ]
-            
-            activeSession = session
-            session.start()
+
+            let navigationController = UINavigationController(rootViewController: viewController)
+            navigationController.modalPresentationStyle = .formSheet
+
+            presentedController = navigationController
+            presentationAnchor.rootViewController?.present(navigationController, animated: true)
+
+            webView.load(URLRequest(url: oidcData.url))
         }
-        
-        activeSession = nil
-        
-        guard let url else {
-            // Check for user cancellation to avoid showing an alert in that instance.
-            if error?.isOIDCUserCancellation == true {
-                // No need to show an error here, just abort and return a failure.
-                await authenticationService.abortOIDCLogin(data: oidcData)
-                return .failure(.oidcError(.userCancellation))
-            }
-            
-            let errorDescription = error.map(String.init(describing:)) ?? "Unknown error"
-            MXLog.error("Missing callback URL from the web authentication session: \(errorDescription)")
-            
-            showFailureIndicator()
+
+        guard let callbackURL, !cancelled else {
             await authenticationService.abortOIDCLogin(data: oidcData)
-            return .failure(.oidcError(.unknown))
+            return .failure(.oidcError(.userCancellation))
         }
-        
-        // Exchanging the callback with the homeserver can be slow, so show the loading indicator while we wait (the modal has already been dismissed).
-        startLoading(delay: .milliseconds(50)) // Small delay to handle a cancellation callback without the indicator showing.
+
+        // Exchanging the callback with the homeserver can be slow, so show the loading indicator while we wait.
+        startLoading(delay: .milliseconds(50))
         defer { stopLoading() }
-        
-        switch await authenticationService.loginWithOIDCCallback(url) {
+
+        switch await authenticationService.loginWithOIDCCallback(callbackURL) {
         case .success(let userSession):
             return .success(userSession)
         case .failure(.oidcError(.userCancellation)):
-            // No need to show an error here, just return the failure.
             return .failure(.oidcError(.userCancellation))
         case .failure(let error):
             MXLog.error("Error occurred: \(error)")
@@ -80,11 +85,16 @@ class OIDCAuthenticationPresenter: NSObject {
             return .failure(error)
         }
     }
-    
+
     func cancel() {
-        activeSession?.cancel()
+        presentedController?.dismiss(animated: true)
+        guard let authContinuation else { return }
+        self.authContinuation = nil
+        authContinuation.resume(returning: (nil, true))
     }
-    
+
+    // MARK: - Indicators
+
     private var loadingIndicatorID: String {
         "\(Self.self)-Loading"
     }
@@ -92,7 +102,7 @@ class OIDCAuthenticationPresenter: NSObject {
     private var failureIndicatorID: String {
         "\(Self.self)-Failure"
     }
-    
+
     private func startLoading(delay: Duration? = nil) {
         userIndicatorController.submitIndicator(UserIndicator(id: loadingIndicatorID,
                                                               type: .modal,
@@ -100,11 +110,11 @@ class OIDCAuthenticationPresenter: NSObject {
                                                               persistent: true),
                                                 delay: delay)
     }
-    
+
     private func stopLoading() {
         userIndicatorController.retractIndicatorWithId(loadingIndicatorID)
     }
-    
+
     private func showFailureIndicator() {
         userIndicatorController.submitIndicator(UserIndicator(id: failureIndicatorID,
                                                               type: .toast,
@@ -113,39 +123,64 @@ class OIDCAuthenticationPresenter: NSObject {
     }
 }
 
-// MARK: ASWebAuthenticationPresentationContextProviding
+// MARK: - WKNavigationDelegate
 
-extension OIDCAuthenticationPresenter: ASWebAuthenticationPresentationContextProviding {
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        presentationAnchor
+extension OIDCAuthenticationPresenter: WKNavigationDelegate {
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
+        guard let url = navigationAction.request.url else {
+            return .allow
+        }
+
+        // Intercept the OIDC redirect URL
+        if url.absoluteString.hasPrefix(oidcRedirectURL.absoluteString) {
+            presentedController?.dismiss(animated: true)
+            guard let authContinuation else { return .cancel }
+            self.authContinuation = nil
+            authContinuation.resume(returning: (url, false))
+            return .cancel
+        }
+
+        return .allow
     }
 }
 
-extension ASWebAuthenticationSession.Callback {
-    static func oidcRedirectURL(_ url: URL) -> Self {
-        if url.scheme == "https", let host = url.host() {
-            .https(host: host, path: url.path())
-        } else if let scheme = url.scheme {
-            .customScheme(scheme)
-        } else {
-            fatalError("Invalid OIDC redirect URL: \(url)")
-        }
+// MARK: - OIDCWebViewController
+
+/// A simple view controller that wraps a WKWebView with a Cancel button.
+private class OIDCWebViewController: UIViewController {
+    private let webView: WKWebView
+    var onDismiss: (() -> Void)?
+
+    init(webView: WKWebView) {
+        self.webView = webView
+        super.init(nibName: nil, bundle: nil)
     }
-}
 
-// MARK: - Helpers
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
-extension Error {
-    var isOIDCUserCancellation: Bool {
-        let nsError = self as NSError
-        
-        if nsError.domain == ASWebAuthenticationSessionErrorDomain,
-           nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue,
-           // If there's a failure reason then the cancellation wasn't made by the user.
-           nsError.localizedFailureReason == nil {
-            return true
-        }
-        
-        return false
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel,
+                                                           target: self,
+                                                           action: #selector(cancelTapped))
+    }
+
+    @objc private func cancelTapped() {
+        onDismiss?()
+        dismiss(animated: true)
     }
 }
