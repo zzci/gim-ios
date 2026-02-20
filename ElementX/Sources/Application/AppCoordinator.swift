@@ -86,7 +86,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         let appName = InfoPlistReader.main.bundleDisplayName
         let appVersion = InfoPlistReader.main.bundleShortVersionString
-        let appBuild = InfoPlistReader.main.bundleVersion
+        let appBuild = GitVersion.commitHash
         MXLog.info("\(appName) \(appVersion) (\(appBuild))")
         
         if ProcessInfo.processInfo.environment["RESET_APP_SETTINGS"].map(Bool.init) == true {

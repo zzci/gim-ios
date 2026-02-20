@@ -242,7 +242,7 @@ struct SettingsScreen: View {
     }
     
     private var versionText: Text {
-        Text(L10n.settingsVersionNumber(InfoPlistReader.main.bundleShortVersionString, InfoPlistReader.main.bundleVersion))
+        Text(L10n.settingsVersionNumber(InfoPlistReader.main.bundleShortVersionString, GitVersion.commitHash))
     }
     
     private var toolbar: some ToolbarContent {

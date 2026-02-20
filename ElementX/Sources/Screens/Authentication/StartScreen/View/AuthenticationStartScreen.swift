@@ -142,7 +142,8 @@ struct AuthenticationStartScreen: View {
     var versionText: Text {
         // Let's not deal with snapshotting a changing version string.
         let shortVersionString = ProcessInfo.isRunningTests ? "0.0.0" : InfoPlistReader.main.bundleShortVersionString
-        return Text(L10n.screenOnboardingAppVersion(shortVersionString))
+        let buildID = ProcessInfo.isRunningTests ? "dev" : GitVersion.commitHash
+        return Text("\(L10n.screenOnboardingAppVersion(shortVersionString)) (\(buildID))")
     }
 
     /// Sends the homeserver login action.

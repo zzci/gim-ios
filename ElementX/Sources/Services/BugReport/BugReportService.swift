@@ -169,12 +169,12 @@ class BugReportService: NSObject, BugReportServiceProtocol {
 
     private var defaultParams: [MultipartFormData] {
         let (localTime, utcTime) = localAndUTCTime(for: Date())
-        let version = "\(InfoPlistReader.main.bundleShortVersionString) (\(InfoPlistReader.main.bundleVersion))"
+        let version = "\(InfoPlistReader.main.bundleShortVersionString) (\(GitVersion.commitHash))"
         return [
             MultipartFormData(key: "user_agent", type: .text(value: "iOS")),
             MultipartFormData(key: "app", type: .text(value: applicationID)),
             MultipartFormData(key: "version", type: .text(value: version)),
-            MultipartFormData(key: "build", type: .text(value: InfoPlistReader.main.bundleVersion)),
+            MultipartFormData(key: "build", type: .text(value: GitVersion.commitHash)),
             MultipartFormData(key: "sdk_sha", type: .text(value: sdkGitSHA)),
             MultipartFormData(key: "os", type: .text(value: os)),
             MultipartFormData(key: "resolved_languages", type: .text(value: Bundle.app.preferredLocalizations.joined(separator: ", "))),
