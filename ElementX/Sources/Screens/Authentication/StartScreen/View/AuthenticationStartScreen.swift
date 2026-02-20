@@ -12,6 +12,7 @@ import SwiftUI
 /// The screen shown at the beginning of the onboarding flow.
 struct AuthenticationStartScreen: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @FocusState private var isTextFieldFocused: Bool
 
     @Bindable var context: AuthenticationStartScreenViewModel.Context
 
@@ -49,8 +50,9 @@ struct AuthenticationStartScreen: View {
                 .padding(.bottom)
             }
         }
+        .contentShape(Rectangle())
         .onTapGesture {
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            isTextFieldFocused = false
         }
         .navigationBarHidden(true)
         .background {
@@ -121,6 +123,7 @@ struct AuthenticationStartScreen: View {
                 .keyboardType(.URL)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
+                .focused($isTextFieldFocused)
                 .onChange(of: context.homeserverAddress) { context.send(viewAction: .clearHomeserverError) }
                 .submitLabel(.done)
                 .onSubmit(submitHomeserver)
