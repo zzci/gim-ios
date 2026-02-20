@@ -64,15 +64,6 @@ struct UserProfileScreen: View {
                 .accessibilityIdentifier(A11yIdentifiers.roomMemberDetailsScreen.directChat)
             }
             
-            if let roomID = context.viewState.dmRoomID {
-                Button {
-                    context.send(viewAction: .startCall(roomID: roomID))
-                } label: {
-                    CompoundIcon(\.videoCall)
-                }
-                .buttonStyle(FormActionButtonStyle(title: L10n.actionCall))
-            }
-            
             if let permalink = context.viewState.permalink {
                 ShareLink(item: permalink) {
                     CompoundIcon(\.shareIos)

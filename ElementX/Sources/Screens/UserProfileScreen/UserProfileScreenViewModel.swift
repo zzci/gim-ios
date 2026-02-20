@@ -62,8 +62,6 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
             openDirectChat()
         case .createDirectChat:
             Task { await createDirectChat() }
-        case .startCall(let roomID):
-            Task { await startCall(roomID: roomID) }
         case .dismiss:
             actionsSubject.send(.dismiss)
         }
@@ -142,14 +140,6 @@ class UserProfileScreenViewModel: UserProfileScreenViewModelType, UserProfileScr
         case .failure:
             state.bindings.alertInfo = .init(id: .failedOpeningDirectChat)
         }
-    }
-    
-    private func startCall(roomID: String) async {
-        guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
-            showErrorIndicator()
-            return
-        }
-        actionsSubject.send(.startCall(roomProxy: roomProxy))
     }
     
     // MARK: User Indicators

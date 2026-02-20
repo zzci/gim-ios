@@ -11,7 +11,6 @@ import Foundation
 enum RoomMemberDetailsScreenViewModelAction {
     case openUserProfile
     case openDirectChat(roomID: String)
-    case startCall(roomProxy: JoinedRoomProxyProtocol)
     case verifyUser(userID: String)
 }
 
@@ -93,7 +92,6 @@ enum RoomMemberDetailsScreenViewAction {
     case displayAvatar(URL)
     case openDirectChat
     case createDirectChat
-    case startCall(roomID: String)
     case verifyUser
     case withdrawVerification
 }
