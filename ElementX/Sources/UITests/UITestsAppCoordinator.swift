@@ -114,13 +114,7 @@ class MockScreen: Identifiable {
     lazy var coordinator: CoordinatorProtocol? = {
         switch id {
         case .serverSelection:
-            let navigationStackCoordinator = NavigationStackCoordinator()
-            let coordinator = ServerSelectionScreenCoordinator(parameters: .init(authenticationService: AuthenticationService.mock,
-                                                                                 authenticationFlow: .login,
-                                                                                 appSettings: ServiceLocator.shared.settings,
-                                                                                 userIndicatorController: ServiceLocator.shared.userIndicatorController))
-            navigationStackCoordinator.setRootCoordinator(coordinator)
-            return navigationStackCoordinator
+            return nil // Server selection screen removed.
         case .authenticationFlow, .provisionedAuthenticationFlow, .singleProviderAuthenticationFlow, .multipleProvidersAuthenticationFlow:
             let appSettings: AppSettings! = ServiceLocator.shared.settings
             

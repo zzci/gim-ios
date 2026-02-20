@@ -1061,20 +1061,6 @@ extension PreviewTests {
         }
     }
 
-    func testServerConfirmationScreen() async throws {
-        AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
-        for (index, preview) in ServerConfirmationScreen_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
-    func testServerSelection() async throws {
-        AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
-        for (index, preview) in ServerSelection_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
     func testSessionVerificationRequestDetailsView() async throws {
         AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
         for (index, preview) in SessionVerificationRequestDetailsView_Previews._allPreviews.enumerated() {

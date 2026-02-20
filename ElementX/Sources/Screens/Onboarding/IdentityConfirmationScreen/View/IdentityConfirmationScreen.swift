@@ -60,6 +60,11 @@ struct IdentityConfirmationScreen: View {
                     }
                     .buttonStyle(.compound(.primary))
                 }
+
+                Button(L10n.screenIdentityConfirmationCannotConfirm) {
+                    context.send(viewAction: .reset)
+                }
+                .buttonStyle(.compound(.secondary))
             } else {
                 Button { /* Placeholder button, there is no action */ } label: {
                     Label {

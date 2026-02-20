@@ -607,14 +607,6 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "SeparatorRoomTimelineView_Previews")
     }
 
-    func testServerConfirmationScreen() async throws {
-        try await performAccessibilityAudit(named: "ServerConfirmationScreen_Previews")
-    }
-
-    func testServerSelection() async throws {
-        try await performAccessibilityAudit(named: "ServerSelection_Previews")
-    }
-
     func testSessionVerificationRequestDetailsView() async throws {
         try await performAccessibilityAudit(named: "SessionVerificationRequestDetailsView_Previews")
     }

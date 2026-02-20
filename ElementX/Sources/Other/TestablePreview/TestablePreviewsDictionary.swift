@@ -159,8 +159,6 @@ enum TestablePreviewsDictionary {
         "SendInviteConfirmationView_Previews" : SendInviteConfirmationView_Previews.self,
         "SeparatorMediaEventsTimelineView_Previews" : SeparatorMediaEventsTimelineView_Previews.self,
         "SeparatorRoomTimelineView_Previews" : SeparatorRoomTimelineView_Previews.self,
-        "ServerConfirmationScreen_Previews" : ServerConfirmationScreen_Previews.self,
-        "ServerSelection_Previews" : ServerSelection_Previews.self,
         "SessionVerificationRequestDetailsView_Previews" : SessionVerificationRequestDetailsView_Previews.self,
         "SessionVerification_Previews" : SessionVerification_Previews.self,
         "SettingsScreen_Previews" : SettingsScreen_Previews.self,

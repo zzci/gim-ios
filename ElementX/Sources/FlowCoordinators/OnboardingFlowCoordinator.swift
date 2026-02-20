@@ -258,7 +258,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             case .skip:
                 break // SSSS skip not used in this build.
             case .reset:
-                break // SSSS encryption reset not used in this build.
+                startEncryptionResetFlow()
             case .logout:
                 actionsSubject.send(.logout)
             }

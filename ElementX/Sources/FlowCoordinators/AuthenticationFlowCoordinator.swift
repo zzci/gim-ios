@@ -28,25 +28,21 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     enum State: StateType {
         /// The state machine hasn't started.
         case initial
-        
+
         /// The initial screen shown when you first launch the app.
         case startScreen
-        
+
         /// The screen used for the whole QR Code flow.
         case qrCodeLoginScreen
-        
-        /// The screen to continue authentication with the current server.
-        case serverConfirmationScreen
-        /// The screen to choose a different server.
-        case serverSelectionScreen
+
         /// The web authentication session is being presented.
         case oidcAuthentication
         /// The screen to login with a password.
         case loginScreen
-        
+
         /// The screen to report an error.
         case bugReportFlow
-        
+
         /// The flow is complete.
         case complete
     }
@@ -54,27 +50,18 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     enum Event: EventType {
         /// The flow is being started.
         case start
-        
+
         /// Modify the flow using the provisioning parameters in the `userInfo`.
         case applyProvisioningParameters
-        
+
         /// The user would like to login with a QR code.
         case loginWithQR
-        /// Show the server confirmation screen.
-        case confirmServer(AuthenticationFlow)
         /// The user encountered a problem.
         case reportProblem
-        
+
         /// The QR login flow was aborted.
         case cancelledLoginWithQR
-        /// The user aborted manual login.
-        case cancelledServerConfirmation
-        
-        /// The user would like to enter a different server.
-        case changeServer(AuthenticationFlow)
-        /// The user is no longer selecting a server.
-        case dismissedServerSelection
-        
+
         /// Show the web authentication session for OIDC (using the parameters in the `userInfo`).
         case continueWithOIDC
         /// The web authentication session was aborted.
@@ -83,10 +70,10 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         case continueWithPassword
         /// The password login was aborted.
         case cancelledPasswordLogin(previousState: State)
-        
+
         /// The user has finished reporting a problem (or viewing the logs).
         case bugReportFlowComplete
-        
+
         /// The user has successfully signed in. The new session can be found in the `userInfo`.
         case signedIn
     }
@@ -151,11 +138,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         case .qrCodeLoginScreen:
             navigationStackCoordinator.setSheetCoordinator(nil)
             stateMachine.tryEvent(.cancelledLoginWithQR) // Needs to be handled manually.
-        case .serverConfirmationScreen:
-            navigationStackCoordinator.popToRoot(animated: animated)
-        case .serverSelectionScreen:
-            navigationStackCoordinator.setSheetCoordinator(nil)
-            navigationStackCoordinator.popToRoot(animated: animated)
         case .oidcAuthentication:
             oidcPresenter?.cancel()
             navigationStackCoordinator.popToRoot(animated: animated)
@@ -182,46 +164,26 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
         
         // QR Code
-        
+
         stateMachine.addRoutes(event: .loginWithQR, transitions: [.startScreen => .qrCodeLoginScreen]) { [weak self] _ in
             self?.showQRCodeLoginScreen()
         }
         stateMachine.addRoutes(event: .cancelledLoginWithQR, transitions: [.qrCodeLoginScreen => .startScreen])
-        
-        // Manual Authentication
-        
-        stateMachine.addRoutes(event: .confirmServer(.login), transitions: [.startScreen => .serverConfirmationScreen]) { [weak self] _ in
-            self?.showServerConfirmationScreen(authenticationFlow: .login)
-        }
-        stateMachine.addRoutes(event: .confirmServer(.register), transitions: [.startScreen => .serverConfirmationScreen]) { [weak self] _ in
-            self?.showServerConfirmationScreen(authenticationFlow: .register)
-        }
-        stateMachine.addRoutes(event: .cancelledServerConfirmation, transitions: [.serverConfirmationScreen => .startScreen])
-        
-        stateMachine.addRoutes(event: .changeServer(.login), transitions: [.serverConfirmationScreen => .serverSelectionScreen]) { [weak self] _ in
-            self?.showServerSelectionScreen(authenticationFlow: .login)
-        }
-        stateMachine.addRoutes(event: .changeServer(.register), transitions: [.serverConfirmationScreen => .serverSelectionScreen]) { [weak self] _ in
-            self?.showServerSelectionScreen(authenticationFlow: .register)
-        }
-        stateMachine.addRoutes(event: .dismissedServerSelection, transitions: [.serverSelectionScreen => .serverConfirmationScreen])
-        
-        stateMachine.addRoutes(event: .continueWithOIDC, transitions: [.serverConfirmationScreen => .oidcAuthentication,
-                                                                       .startScreen => .oidcAuthentication]) { [weak self] context in
+
+        // Direct Authentication (from start screen homeserver field)
+
+        stateMachine.addRoutes(event: .continueWithOIDC, transitions: [.startScreen => .oidcAuthentication]) { [weak self] context in
             guard let (oidcData, window) = context.userInfo as? (OIDCAuthorizationDataProxy, UIWindow) else {
                 fatalError("Missing the OIDC data and presentation anchor.")
             }
             self?.showOIDCAuthentication(oidcData: oidcData, presentationAnchor: window, fromState: context.fromState)
         }
-        stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .serverConfirmationScreen), transitions: [.oidcAuthentication => .serverConfirmationScreen])
         stateMachine.addRoutes(event: .cancelledOIDCAuthentication(previousState: .startScreen), transitions: [.oidcAuthentication => .startScreen])
-        
-        stateMachine.addRoutes(event: .continueWithPassword, transitions: [.serverConfirmationScreen => .loginScreen,
-                                                                           .startScreen => .loginScreen]) { [weak self] context in
+
+        stateMachine.addRoutes(event: .continueWithPassword, transitions: [.startScreen => .loginScreen]) { [weak self] context in
             let loginHint = context.userInfo as? String
             self?.showLoginScreen(loginHint: loginHint, fromState: context.fromState)
         }
-        stateMachine.addRoutes(event: .cancelledPasswordLogin(previousState: .serverConfirmationScreen), transitions: [.loginScreen => .serverConfirmationScreen])
         stateMachine.addRoutes(event: .cancelledPasswordLogin(previousState: .startScreen), transitions: [.loginScreen => .startScreen])
         
         // Bug Report
@@ -269,17 +231,14 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         coordinator.actions
             .sink { [weak self] action in
                 guard let self else { return }
-                
+
                 switch action {
                 case .loginWithQR:
                     stateMachine.tryEvent(.loginWithQR)
-                case .login:
-                    stateMachine.tryEvent(.confirmServer(.login))
-                case .register:
-                    stateMachine.tryEvent(.confirmServer(.register))
+                case .login, .register:
+                    break // Manual login/register buttons removed; login is done via homeserver field.
                 case .reportProblem:
                     stateMachine.tryEvent(.reportProblem)
-                    
                 case .loginDirectlyWithOIDC(let oidcData, let window):
                     stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
                 case .loginDirectlyWithPassword(let loginHint):
@@ -315,7 +274,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             case .signInManually:
                 navigationStackCoordinator.setSheetCoordinator(nil)
                 stateMachine.tryEvent(.cancelledLoginWithQR)
-                stateMachine.tryEvent(.confirmServer(.login))
             case .signedIn(let userSession):
                 navigationStackCoordinator.setSheetCoordinator(nil)
                 // Since the qr code login flow includes verification
@@ -332,66 +290,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         
         stackCoordinator.setRootCoordinator(coordinator)
         navigationStackCoordinator.setSheetCoordinator(stackCoordinator) // Don't use the callback (interactive dismiss disabled), choose the event with the action.
-    }
-    
-    // MARK: - Manual Authentication
-    
-    private func showServerConfirmationScreen(authenticationFlow: AuthenticationFlow) {
-        // Reset the service back to the default homeserver before continuing. This ensures
-        // we check that registration is supported if it was previously configured for login.
-        authenticationService.reset()
-        
-        let parameters = ServerConfirmationScreenCoordinatorParameters(authenticationService: authenticationService,
-                                                                       authenticationFlow: authenticationFlow,
-                                                                       appSettings: appSettings,
-                                                                       userIndicatorController: userIndicatorController)
-        let coordinator = ServerConfirmationScreenCoordinator(parameters: parameters)
-        
-        coordinator.actions.sink { [weak self] action in
-            guard let self else { return }
-            
-            switch action {
-            case .continueWithOIDC(let oidcData, let window):
-                stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
-            case .continueWithPassword:
-                stateMachine.tryEvent(.continueWithPassword)
-            case .changeServer:
-                stateMachine.tryEvent(.changeServer(authenticationFlow))
-            }
-        }
-        .store(in: &cancellables)
-        
-        navigationStackCoordinator.push(coordinator) { [weak self] in
-            self?.stateMachine.tryEvent(.cancelledServerConfirmation)
-        }
-    }
-    
-    private func showServerSelectionScreen(authenticationFlow: AuthenticationFlow) {
-        let navigationCoordinator = NavigationStackCoordinator()
-        
-        let parameters = ServerSelectionScreenCoordinatorParameters(authenticationService: authenticationService,
-                                                                    authenticationFlow: authenticationFlow,
-                                                                    appSettings: appSettings,
-                                                                    userIndicatorController: userIndicatorController)
-        let coordinator = ServerSelectionScreenCoordinator(parameters: parameters)
-        
-        coordinator.actions
-            .sink { [weak self] action in
-                guard let self else { return }
-                
-                switch action {
-                case .updated:
-                    navigationStackCoordinator.setSheetCoordinator(nil)
-                case .dismiss:
-                    navigationStackCoordinator.setSheetCoordinator(nil)
-                }
-            }
-            .store(in: &cancellables)
-        
-        navigationCoordinator.setRootCoordinator(coordinator)
-        navigationStackCoordinator.setSheetCoordinator(navigationCoordinator) { [weak self] in
-            self?.stateMachine.tryEvent(.dismissedServerSelection)
-        }
     }
     
     private func showOIDCAuthentication(oidcData: OIDCAuthorizationDataProxy, presentationAnchor: UIWindow, fromState: State) {
