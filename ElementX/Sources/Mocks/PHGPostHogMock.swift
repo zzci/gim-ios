@@ -7,23 +7,3 @@
 //
 
 import Foundation
-import PostHog
-
-extension PHGPostHogMock {
-    func configureMockBehavior() {
-        // We don't need custom configuration anymore since update of the posthog SDK
-        // Keeping boilerplate code in case needed later?
-    }
-}
-
-class MockPostHogFactory: PostHogFactory {
-    var mock: PHGPostHogProtocol!
-    
-    init(mock: PHGPostHogProtocol!) {
-        self.mock = mock
-    }
-    
-    func createPostHog(config: PostHogConfig) -> PHGPostHogProtocol {
-        mock
-    }
-}

@@ -1,6 +1,6 @@
 settings:
-  APP_GROUP_IDENTIFIER: group.io.element.nightly
-  BASE_BUNDLE_IDENTIFIER: io.element.elementx.nightly
+  APP_GROUP_IDENTIFIER: group.im.g.message.nightly
+  BASE_BUNDLE_IDENTIFIER: im.g.message.nightly
 
 targets:
   ElementX:

@@ -2,10 +2,6 @@ require 'yaml'
 
 skip_docs
 
-enterprise = '../Enterprise/Pipeline/Scripts/iOS/Fastfile'
-if File.exist?(enterprise)
-  import enterprise
-end
 
 simulator_version = "26.1"
 
@@ -125,7 +121,6 @@ lane :integration_tests do
 end
 
 lane :config_production do
-  update_foss_secrets()
   xcodegen(spec: "project.yml")
 end
 
@@ -141,8 +136,6 @@ lane :config_nightly do |options|
     data["include"].append({ "path" => "Variants/Nightly/nightly.yml" })
   end
 
-  update_foss_secrets()
-  
   File.open(target_file_path, 'w') { |f| YAML.dump(data, f) }
 
   xcodegen(spec: "project.yml")
@@ -169,9 +162,9 @@ lane :upload_dsyms_to_sentry do |options|
   begin
     sentry_debug_files_upload(
       auth_token: auth_token,
-      org_slug: 'element',
-      project_slug: 'element-x-ios',
-      url: 'https://sentry.tools.element.io/',
+      org_slug: 'gim',
+      project_slug: 'gim-ios',
+      url: ENV.fetch('SENTRY_URL', 'https://sentry.g.im/'),
       path: dsym_path,
     )
   rescue => exception
@@ -193,7 +186,7 @@ lane :release_to_github do
   release_version = get_version_number(target: "ElementX")
 
   github_release = set_github_release(
-    repository_name: "element-hq/element-x-ios",
+    repository_name: "zzci/gim-ios",
     api_token: api_token,
     name: release_version,
     tag_name: "release/#{release_version}",
@@ -284,8 +277,8 @@ lane :tag_nightly do |options|
 end
 
 private_lane :setup_git do
-  sh("git config --global user.name 'Element CI'")
-  sh("git config --global user.email 'ci@element.io'")
+  sh("git config --global user.name 'GIM CI'")
+  sh("git config --global user.email 'ci@g.im'")
 end
 
 private_lane :git_push do |options|

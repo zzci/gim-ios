@@ -225,12 +225,12 @@ final class AppSettings {
     private(set) var historySharingDetailsURL: URL = "https://g.im/help#e2ee-history-sharing"
 
     /// Any domains that Element web may be hosted on - used for handling links.
-    private(set) var elementWebHosts = ["app.element.io", "staging.element.io", "develop.element.io"]
+    private(set) var elementWebHosts = ["g.im"]
     /// The domain that account provisioning links will be hosted on - used for handling the links.
-    private(set) var accountProvisioningHost = "mobile.element.io"
-    /// The App Store URL for Element Pro, shown to the user when a homeserver requires that app.
-    /// **Note:** This property isn't overridable as it in unexpected for forks to come across the error (or to even have a "Pro" app).
-    let elementProAppStoreURL: URL = "https://apps.apple.com/app/element-pro-for-work/id6502951615"
+    private(set) var accountProvisioningHost = "g.im"
+    /// The App Store URL for an alternative app, shown to the user when a homeserver requires it.
+    /// GIM has no separate "Pro" app, so this points to the main website.
+    let elementProAppStoreURL: URL = "https://g.im"
     
     @UserPreference(key: UserDefaultsKeys.appAppearance, defaultValue: .system, storageType: .userDefaults(store))
     var appAppearance: AppAppearance
@@ -308,26 +308,23 @@ final class AppSettings {
     
     // MARK: - Bug report
     
-    let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(Secrets.rageshakeURL.map { .url(URL(string: $0)!) } ?? .disabled) // swiftlint:disable:this force_unwrapping
-    let bugReportSentryURL: URL? = Secrets.sentryDSN.map { URL(string: $0)! } // swiftlint:disable:this force_unwrapping
-    let bugReportSentryRustURL: URL? = Secrets.sentryRustDSN.map { URL(string: $0)! } // swiftlint:disable:this force_unwrapping
+    let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(.disabled)
+    /// Set your Sentry DSN here to enable crash reporting. Nil disables Sentry.
+    let bugReportSentryURL: URL? = nil
+    /// Set your Sentry Rust SDK DSN here. Nil disables Rust SDK tracing to Sentry.
+    let bugReportSentryRustURL: URL? = nil
     /// The name allocated by the bug report server
-    private(set) var bugReportApplicationID = "element-x-ios"
+    private(set) var bugReportApplicationID = "gim-ios"
     
     // MARK: - Analytics
     
-    /// The configuration to use for analytics. Set to `nil` to disable analytics.
-    let analyticsConfiguration: AnalyticsConfiguration? = AppSettings.makeAnalyticsConfiguration()
+    /// PostHog analytics disabled for GIM. Keep the property for interface compatibility.
+    let analyticsConfiguration: AnalyticsConfiguration? = nil
     /// The URL to open with more information about analytics terms. When this is `nil` the "Learn more" link will be hidden.
-    private(set) var analyticsTermsURL: URL? = "https://element.io/cookie-policy"
-    /// Whether or not there the app is able ask for user consent to enable analytics or sentry reporting.
+    private(set) var analyticsTermsURL: URL? = "https://g.im/privacy"
+    /// Whether or not there the app is able ask for user consent to enable Sentry reporting.
     var canPromptForAnalytics: Bool {
-        analyticsConfiguration != nil || bugReportSentryURL != nil
-    }
-    
-    private static func makeAnalyticsConfiguration() -> AnalyticsConfiguration? {
-        guard let host = Secrets.postHogHost, let apiKey = Secrets.postHogAPIKey else { return nil }
-        return AnalyticsConfiguration(host: host, apiKey: apiKey)
+        bugReportSentryURL != nil
     }
     
     /// Whether the user has opted in to send analytics.
@@ -367,11 +364,6 @@ final class AppSettings {
     let elementCallBaseURL: URL = EmbeddedElementCall.appURL!
     #endif
     
-    // These are publicly availble on https://call.element.io so we don't neeed to treat them as secrets
-    let elementCallPosthogAPIHost = "https://posthog-element-call.element.io"
-    let elementCallPosthogAPIKey = "phc_rXGHx9vDmyEvyRxPziYtdVIv0ahEv8A9uLWFcCi1WcU"
-    let elementCallPosthogSentryDSN = "https://3bd2f95ba5554d4497da7153b552ffb5@sentry.tools.element.io/41"
-    
     @UserPreference(key: UserDefaultsKeys.elementCallBaseURLOverride, defaultValue: nil, storageType: .userDefaults(store))
     var elementCallBaseURLOverride: URL?
     
@@ -383,8 +375,9 @@ final class AppSettings {
     // MARK: - Maps
     
     /// maptiler base url
+    /// Set your MapTiler API key (from https://www.maptiler.com/) to enable maps.
     private(set) var mapTilerConfiguration = MapTilerConfiguration(baseURL: "https://api.maptiler.com/maps",
-                                                                   apiKey: Secrets.mapLibreAPIKey,
+                                                                   apiKey: nil,
                                                                    lightStyleID: "9bc819c8-e627-474a-a348-ec144fe3d810",
                                                                    darkStyleID: "dea61faf-292b-4774-9660-58fcef89a7f3")
     

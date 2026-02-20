@@ -351,7 +351,7 @@ struct CallScreen_Previews: PreviewProvider {
                                    configuration: .init(roomProxy: roomProxy,
                                                         clientProxy: clientProxy,
                                                         clientID: "im.g.message",
-                                                        elementCallBaseURL: "https://call.element.io",
+                                                        elementCallBaseURL: EmbeddedElementCall.appURL!,
                                                         elementCallBaseURLOverride: nil,
                                                         colorScheme: .light),
                                    allowPictureInPicture: false,

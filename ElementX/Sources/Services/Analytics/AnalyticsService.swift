@@ -8,7 +8,6 @@
 
 import AnalyticsEvents
 import Combine
-import PostHog
 
 /// A class responsible for managing a variety of analytics clients
 /// and sending events through these clients.
