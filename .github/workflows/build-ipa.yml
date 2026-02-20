@@ -109,6 +109,9 @@ jobs:
           TAG="build-${BUILD_DATE}-${SHORT_SHA}"
           TITLE="Build ${BUILD_DATE} (${SHORT_SHA})"
 
+          # Delete existing release with the same tag if it exists
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+
           gh release create "$TAG" build/ElementX-unsigned.ipa \
             --title "$TITLE" \
             --notes "Unsigned IPA build from \`${{ github.ref_name }}\` @ \`${SHORT_SHA}\`
