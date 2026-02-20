@@ -53,7 +53,6 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     init(userSession: UserSessionProtocol,
          roomProxy: JoinedRoomProxyProtocol,
          initialSelectedPinnedEventID: String?,
-         ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>,
          appSettings: AppSettings,
          appHooks: AppHooks,
          analyticsService: AnalyticsService,
@@ -75,14 +74,13 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
         
         let viewState = RoomScreenViewState(roomTitle: roomProxy.infoPublisher.value.displayName ?? roomProxy.id,
                                             roomAvatar: roomProxy.infoPublisher.value.avatar,
-                                            hasOngoingCall: roomProxy.infoPublisher.value.hasRoomCall,
                                             hasSuccessor: roomProxy.infoPublisher.value.successor != nil,
                                             roomHistorySharingState: roomHistorySharingState)
         super.init(initialViewState: appHooks.roomScreenHook.update(viewState),
                    mediaProvider: userSession.mediaProvider)
         
         updateRoomInfo(roomProxy.infoPublisher.value)
-        setupSubscriptions(ongoingCallRoomIDPublisher: ongoingCallRoomIDPublisher)
+        setupSubscriptions()
         
         Task {
             await updateVerificationBadge()
@@ -98,10 +96,6 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             actionsSubject.send(.displayPinnedEventsTimeline)
         case .displayRoomDetails:
             actionsSubject.send(.displayRoomDetails)
-        case .displayCall:
-            actionsSubject.send(.displayCall)
-            actionsSubject.send(.removeComposerFocus)
-            analyticsService.trackInteraction(name: .MobileRoomCallButton)
         case .footerViewAction(let action):
             switch action {
             case .resolvePinViolation(let userID):
@@ -161,7 +155,7 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     
     // MARK: - Private
     
-    private func setupSubscriptions(ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never>) {
+    private func setupSubscriptions() {
         appSettings.$knockingEnabled
             .weakAssign(to: \.state.isKnockingEnabled, on: self)
             .store(in: &cancellables)
@@ -192,14 +186,6 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.setupPinnedEventsTimelineItemProviderIfNeeded()
-            }
-            .store(in: &cancellables)
-        
-        ongoingCallRoomIDPublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] ongoingCallRoomID in
-                guard let self else { return }
-                state.isParticipatingInOngoingCall = ongoingCallRoomID == roomProxy.id
             }
             .store(in: &cancellables)
         
@@ -326,7 +312,6 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
     private func updateRoomInfo(_ roomInfo: RoomInfoProxyProtocol) {
         state.roomTitle = roomInfo.displayName ?? roomProxy.id
         state.roomAvatar = roomInfo.avatar
-        state.hasOngoingCall = roomInfo.hasRoomCall
         state.hasSuccessor = roomInfo.successor != nil
         
         let pinnedEventIDs = roomInfo.pinnedEventIDs
@@ -344,7 +329,6 @@ class RoomScreenViewModel: RoomScreenViewModelType, RoomScreenViewModelProtocol 
 
         if let powerLevels = roomInfo.powerLevels {
             state.canSendMessage = powerLevels.canOwnUser(sendMessage: .roomMessage)
-            state.canJoinCall = powerLevels.canOwnUserJoinCall()
             state.canAcceptKnocks = powerLevels.canOwnUserInvite()
             state.canDeclineKnocks = powerLevels.canOwnUserKick()
             state.canBan = powerLevels.canOwnUserBan()
@@ -455,7 +439,6 @@ extension RoomScreenViewModel {
         RoomScreenViewModel(userSession: UserSessionMock(.init(clientProxy: clientProxyMock)),
                             roomProxy: roomProxyMock,
                             initialSelectedPinnedEventID: nil,
-                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                             appSettings: ServiceLocator.shared.settings,
                             appHooks: appHooks,
                             analyticsService: ServiceLocator.shared.analytics,

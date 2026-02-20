@@ -6,7 +6,6 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import CallKit
 import MatrixRustSDK
 import UserNotifications
 
@@ -18,9 +17,6 @@ class NotificationHandler {
     private let tag: String
     
     private let notificationContentBuilder: NotificationContentBuilder
-    
-    // periphery:ignore - required for instance retention in the rust codebase
-    private var roomInfoObservationToken: TaskHandle?
     
     init(userSession: NSEUserSession,
          settings: CommonSettingsProtocol,
@@ -155,77 +151,14 @@ class NotificationHandler {
     }
     
     /// Handle incoming call notifications.
-    /// - Returns: A boolean indicating whether the notification was handled and should now be discarded.
+    /// Call functionality has been removed, so call notifications are displayed as regular notifications.
     private func handleCallNotification(notificationType: RtcNotificationType,
                                         rtcNotifyEventID: String,
                                         timestamp: Timestamp,
                                         expirationTimestamp: Timestamp,
                                         roomID: String,
                                         roomDisplayName: String) async -> NotificationProcessingResult {
-        // Handle incoming VoIP calls, show the native OS call screen
-        // https://developer.apple.com/documentation/callkit/sending-end-to-end-encrypted-voip-calls
-        //
-        // The way this works is the following:
-        // - the NSE receives the notification and decrypts it
-        // - checks if it's still time relevant (max 10 seconds old) and whether it should ring
-        // - otherwise it goes on to show it as a normal notification
-        // - if it should ring then it discards the notification but invokes `reportNewIncomingVoIPPushPayload`
-        // so that the main app can handle it
-        // - the main app picks this up in `PKPushRegistry.didReceiveIncomingPushWith` and
-        // `CXProvider.reportNewIncomingCall` to show the system UI and handle actions on it.
-        // N.B. this flow works properly only when background processing capabilities are enabled
-        guard notificationType == .ring else {
-            MXLog.info("Non-ringing call notification, handling as push notification")
-            return .shouldDisplay
-        }
-        
-        // Check to see if a call is still ongoing
-        if let room = userSession.roomForIdentifier(roomID) { // Try to get call details from the room info
-            if !room.hasActiveRoomCall() { // If I don't have an active call wait a bit and make sure
-                let expiringTask = ExpiringTaskRunner {
-                    await withCheckedContinuation { [weak self] continuation in
-                        self?.roomInfoObservationToken = room.subscribeToRoomInfoUpdates(listener: SDKListener { info in
-                            if info.hasRoomCall {
-                                MXLog.info("Received room info update and the room has an active call now.")
-                                continuation.resume()
-                            } else {
-                                MXLog.info("Received a room info update but the room still doesn't have an ongoing call.")
-                            }
-                        })
-                    }
-                }
-                
-                try? await expiringTask.run(timeout: .seconds(5)) // Wait 5 seconds or just use whatever is available
-                
-                guard room.hasActiveRoomCall() else {
-                    MXLog.info("The room no longer has an ongoing call, handling as push notification")
-                    return .shouldDisplay
-                }
-            }
-        } else { // Otherwise fallback to the old timeout mechanism
-            let timestamp = Date(timeIntervalSince1970: TimeInterval(timestamp / 1000))
-            
-            guard abs(timestamp.timeIntervalSinceNow) < ElementCallServiceNotificationDiscardDelta else {
-                MXLog.info("Call notification is too old, handling as push notification")
-                return .shouldDisplay
-            }
-        }
-        
-        let expirationDate = Date(timeIntervalSince1970: TimeInterval(expirationTimestamp / 1000))
-        let payload = [ElementCallServiceNotificationKey.roomID.rawValue: roomID,
-                       ElementCallServiceNotificationKey.roomDisplayName.rawValue: roomDisplayName,
-                       ElementCallServiceNotificationKey.expirationDate.rawValue: expirationDate,
-                       ElementCallServiceNotificationKey.rtcNotifyEventID.rawValue: rtcNotifyEventID] as [String: Any]
-        
-        do {
-            try await CXProvider.reportNewIncomingVoIPPushPayload(payload)
-            MXLog.info("Call notification delegated to CallKit")
-        } catch {
-            MXLog.error("Failed reporting voip call with error: \(error). Handling as push notification")
-            return .shouldDisplay
-        }
-        
-        return .processedShouldDiscard
+        .shouldDisplay
     }
     
     private enum NotificationProcessingResult {

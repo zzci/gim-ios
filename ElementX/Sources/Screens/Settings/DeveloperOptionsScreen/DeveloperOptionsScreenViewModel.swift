@@ -18,9 +18,8 @@ class DeveloperOptionsScreenViewModel: DeveloperOptionsScreenViewModelType, Deve
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(developerOptions: DeveloperOptionsProtocol, elementCallBaseURL: URL, appHooks: AppHooks, clientProxy: ClientProxyProtocol) {
-        super.init(initialViewState: .init(elementCallBaseURL: elementCallBaseURL,
-                                           appHooks: appHooks,
+    init(developerOptions: DeveloperOptionsProtocol, appHooks: AppHooks, clientProxy: ClientProxyProtocol) {
+        super.init(initialViewState: .init(appHooks: appHooks,
                                            bindings: .init(developerOptions: developerOptions)))
         
         Task {

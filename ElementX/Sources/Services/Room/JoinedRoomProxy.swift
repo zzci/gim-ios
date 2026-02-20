@@ -653,12 +653,6 @@ class JoinedRoomProxy: JoinedRoomProxyProtocol {
         }
     }
     
-    // MARK: - Element Call
-    
-    func elementCallWidgetDriver(deviceID: String) -> ElementCallWidgetDriverProtocol {
-        ElementCallWidgetDriver(room: room, deviceID: deviceID)
-    }
-    
     func declineCall(notificationID: String) async -> Result<Void, RoomProxyError> {
         do {
             try await room.declineCall(rtcNotificationEventId: notificationID)

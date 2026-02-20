@@ -50,7 +50,6 @@ class RoomMembersFlowCoordinatorTests: XCTestCase {
                 
         let flowParameters = CommonFlowParameters(userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                                   bugReportService: BugReportServiceMock(.init()),
-                                                  elementCallService: ElementCallServiceMock(.init()),
                                                   timelineControllerFactory: TimelineControllerFactoryMock(.init()),
                                                   emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
                                                   linkMetadataProvider: LinkMetadataProvider(),

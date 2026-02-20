@@ -43,7 +43,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -123,7 +122,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: "test1",
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -183,7 +181,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: "test1",
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -241,7 +238,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -250,64 +246,18 @@ class RoomScreenViewModelTests: XCTestCase {
         
         XCTAssertEqual(viewModel.state.roomTitle, "StartingName")
         XCTAssertEqual(viewModel.state.roomAvatar, .room(id: "TestID", name: "StartingName", avatarURL: nil))
-        XCTAssertFalse(viewModel.state.canJoinCall)
-        XCTAssertFalse(viewModel.state.hasOngoingCall)
-                
+
         let deferred = deferFulfillment(viewModel.context.$viewState) { viewState in
             viewState.roomTitle == "NewName" &&
-                viewState.roomAvatar == .room(id: "TestID", name: "NewName", avatarURL: .mockMXCAvatar) &&
-                viewState.canJoinCall &&
-                viewState.hasOngoingCall
+                viewState.roomAvatar == .room(id: "TestID", name: "NewName", avatarURL: .mockMXCAvatar)
         }
-        
+
         configuration.name = "NewName"
         configuration.avatarURL = .mockMXCAvatar
-        configuration.hasOngoingCall = true
-        powerLevelsMock.canUserJoinCallUserIDReturnValue = .success(true)
         
         infoSubject.send(RoomInfoProxyMock(configuration))
         
         try await deferred.fulfill()
-    }
-    
-    func testCallButtonVisibility() async throws {
-        // Given a room screen with no ongoing call.
-        let ongoingCallRoomIDSubject = CurrentValueSubject<String?, Never>(nil)
-        let roomProxyMock = JoinedRoomProxyMock(.init(id: "MyRoomID"))
-        let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
-                                            roomProxy: roomProxyMock,
-                                            initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: ongoingCallRoomIDSubject.asCurrentValuePublisher(),
-                                            appSettings: ServiceLocator.shared.settings,
-                                            appHooks: AppHooks(),
-                                            analyticsService: ServiceLocator.shared.analytics,
-                                            userIndicatorController: ServiceLocator.shared.userIndicatorController)
-        self.viewModel = viewModel
-        XCTAssertTrue(viewModel.state.shouldShowCallButton)
-        
-        // When a call starts in this room.
-        var deferred = deferFulfillment(viewModel.context.$viewState) { !$0.shouldShowCallButton }
-        ongoingCallRoomIDSubject.send("MyRoomID")
-        try await deferred.fulfill()
-        
-        // Then the call button should be hidden.
-        XCTAssertFalse(viewModel.state.shouldShowCallButton)
-        
-        // When a call starts in a different room.
-        deferred = deferFulfillment(viewModel.context.$viewState) { $0.shouldShowCallButton }
-        ongoingCallRoomIDSubject.send("OtherRoomID")
-        try await deferred.fulfill()
-        
-        // Then the call button should be shown again.
-        XCTAssertTrue(viewModel.state.shouldShowCallButton)
-        
-        // When the call from the other room finishes.
-        let deferredFailure = deferFailure(viewModel.context.$viewState, timeout: 1) { !$0.shouldShowCallButton }
-        ongoingCallRoomIDSubject.send(nil)
-        try await deferredFailure.fulfill()
-        
-        // Then the call button should remain visible shown.
-        XCTAssertTrue(viewModel.state.shouldShowCallButton)
     }
     
     func testRoomFullyRead() async {
@@ -321,7 +271,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -342,7 +291,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -376,7 +324,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -405,7 +352,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -425,7 +371,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -453,7 +398,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,
@@ -489,7 +433,6 @@ class RoomScreenViewModelTests: XCTestCase {
         let viewModel = RoomScreenViewModel(userSession: UserSessionMock(.init()),
                                             roomProxy: roomProxyMock,
                                             initialSelectedPinnedEventID: nil,
-                                            ongoingCallRoomIDPublisher: .init(.init(nil)),
                                             appSettings: ServiceLocator.shared.settings,
                                             appHooks: AppHooks(),
                                             analyticsService: ServiceLocator.shared.analytics,

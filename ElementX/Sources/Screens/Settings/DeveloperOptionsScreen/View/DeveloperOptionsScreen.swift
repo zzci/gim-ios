@@ -12,11 +12,9 @@ struct DeveloperOptionsScreen: View {
     @Bindable var context: DeveloperOptionsScreenViewModel.Context
     
     @State private var showConfetti = false
-    @State private var elementCallURLOverrideString: String
-    
+
     init(context: DeveloperOptionsScreenViewModel.Context) {
         self.context = context
-        elementCallURLOverrideString = context.elementCallBaseURLOverride?.absoluteString ?? ""
     }
     
     var body: some View {
@@ -106,23 +104,6 @@ struct DeveloperOptionsScreen: View {
                 Text("WARNING: this feature is EXPERIMENTAL and not all security precautions are implemented. Do not enable on production accounts.")
             }
 
-            Section {
-                TextField("Leave empty to use EC locally", text: $elementCallURLOverrideString)
-                    .autocorrectionDisabled(true)
-                    .autocapitalization(.none)
-                    .foregroundColor(URL(string: elementCallURLOverrideString) == nil ? .red : .primary)
-                    .submitLabel(.done)
-                    .onSubmit {
-                        if elementCallURLOverrideString.isEmpty {
-                            context.elementCallBaseURLOverride = nil
-                        } else if let url = URL(string: elementCallURLOverrideString) {
-                            context.elementCallBaseURLOverride = url
-                        }
-                    }
-            } header: {
-                Text("Element Call remote URL override")
-            }
-            
             Section("Notifications") {
                 Toggle(isOn: $context.hideQuietNotificationAlerts) {
                     Text("Hide quiet alerts")
@@ -211,7 +192,6 @@ private extension Set<TraceLogPack> {
 
 struct DeveloperOptionsScreen_Previews: PreviewProvider {
     static let viewModel = DeveloperOptionsScreenViewModel(developerOptions: ServiceLocator.shared.settings,
-                                                           elementCallBaseURL: ServiceLocator.shared.settings.elementCallBaseURL,
                                                            appHooks: AppHooks(),
                                                            clientProxy: ClientProxyMock(.init()))
     static var previews: some View {

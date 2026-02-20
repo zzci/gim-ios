@@ -11,7 +11,6 @@ import Foundation
 import SwiftState
 
 enum SpaceFlowCoordinatorAction {
-    case presentCallScreen(roomProxy: JoinedRoomProxyProtocol)
     case verifyUser(userID: String)
     case finished
 }
@@ -505,8 +504,6 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 
                 switch action {
-                case .presentCallScreen(let roomProxy):
-                    actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
                 case .verifyUser(let userID):
                     actionsSubject.send(.verifyUser(userID: userID))
                 case .finished:
@@ -530,8 +527,6 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 
                 switch action {
-                case .presentCallScreen(let roomProxy):
-                    actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
                 case .verifyUser(let userID):
                     actionsSubject.send(.verifyUser(userID: userID))
                 case .continueWithSpaceFlow(let spaceRoomListProxy):
@@ -558,8 +553,6 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
             switch actions {
             case .finished:
                 stateMachine.tryEvent(.stopMembersFlow)
-            case .presentCallScreen(let roomProxy):
-                actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
             case .verifyUser(let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
             }
@@ -582,8 +575,6 @@ class SpaceFlowCoordinator: FlowCoordinatorProtocol {
                 if leftRoom {
                     stateMachine.tryEvent(.leftSpace)
                 }
-            case .presentCallScreen(let roomProxy):
-                actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
             case .verifyUser(userID: let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
             }

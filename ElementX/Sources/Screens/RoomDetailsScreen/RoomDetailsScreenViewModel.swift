@@ -151,9 +151,7 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             Task { await toggleFavourite(isFavourite) }
         case .processTapRolesAndPermissions:
             actionsSubject.send(.requestRolesAndPermissionsPresentation)
-        case .processTapCall:
-            actionsSubject.send(.startCall)
-        case .processTapPinnedEvents:
+case .processTapPinnedEvents:
             analyticsService.trackInteraction(name: .PinnedMessageRoomInfoButton)
             actionsSubject.send(.displayPinnedEventsTimeline)
         case .processTapMediaEvents:
@@ -307,7 +305,6 @@ class RoomDetailsScreenViewModel: RoomDetailsScreenViewModelType, RoomDetailsScr
             state.canInviteUsers = powerLevels.canOwnUserInvite()
             state.canKickUsers = powerLevels.canOwnUserKick()
             state.canBanUsers = powerLevels.canOwnUserBan()
-            state.canJoinCall = powerLevels.canOwnUserJoinCall()
             state.canEditRolesOrPermissions = powerLevels.canOwnUserEditRolesAndPermissions()
             state.canEditSecurityAndPrivacy = powerLevels.canOwnUserEditSecurityAndPrivacy(isSpace: roomInfo.isSpace,
                                                                                            joinRule: roomInfo.joinRule)

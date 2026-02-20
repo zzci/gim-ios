@@ -66,9 +66,9 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                                        previousAvatarURLString: prevAvatarUrl,
                                                        isOutgoing: isOutgoing)
         case .callInvite:
-            return buildCallInviteTimelineItem(for: eventItemProxy)
+            return buildUnsupportedTimelineItem(eventItemProxy, "m.call.invite", "Call functionality removed", isOutgoing)
         case .rtcNotification:
-            return buildCallNotificationTimelineItem(for: eventItemProxy)
+            return buildUnsupportedTimelineItem(eventItemProxy, "m.call.notify", "Call functionality removed", isOutgoing)
         }
     }
     
@@ -738,22 +738,6 @@ struct RoomTimelineItemFactory: RoomTimelineItemFactoryProtocol {
                                     canBeRepliedTo: eventItemProxy.canBeRepliedTo,
                                     sender: eventItemProxy.sender,
                                     properties: .init())
-    }
-    
-    private func buildCallInviteTimelineItem(for eventItemProxy: EventTimelineItemProxy) -> RoomTimelineItemProtocol {
-        CallInviteRoomTimelineItem(id: eventItemProxy.id,
-                                   timestamp: eventItemProxy.timestamp,
-                                   isEditable: eventItemProxy.isEditable,
-                                   canBeRepliedTo: eventItemProxy.canBeRepliedTo,
-                                   sender: eventItemProxy.sender)
-    }
-    
-    private func buildCallNotificationTimelineItem(for eventItemProxy: EventTimelineItemProxy) -> RoomTimelineItemProtocol {
-        CallNotificationRoomTimelineItem(id: eventItemProxy.id,
-                                         timestamp: eventItemProxy.timestamp,
-                                         isEditable: eventItemProxy.isEditable,
-                                         canBeRepliedTo: eventItemProxy.canBeRepliedTo,
-                                         sender: eventItemProxy.sender)
     }
     
     // MARK: - State Events

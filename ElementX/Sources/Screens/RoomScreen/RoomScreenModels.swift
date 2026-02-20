@@ -15,7 +15,6 @@ enum RoomScreenViewModelAction: Equatable {
     case displayThread(threadRootEventID: String, focussedEventID: String)
     case displayPinnedEventsTimeline
     case displayRoomDetails
-    case displayCall
     case removeComposerFocus
     case displayKnockRequests
     case displayRoom(roomID: String, via: [String])
@@ -26,7 +25,6 @@ enum RoomScreenViewAction {
     case tappedPinnedEventsBanner
     case viewAllPins
     case displayRoomDetails
-    case displayCall
     case footerViewAction(RoomScreenFooterViewAction)
     case acceptKnock(eventID: String)
     case dismissKnockRequests
@@ -47,19 +45,7 @@ struct RoomScreenViewState: BindableState {
     }
     
     var canSendMessage = true
-    
-    /// Whether or not starting a call is supported.
-    var isCallingEnabled = true
-    /// Whether or not the user is allowed to join calls in this room.
-    var canJoinCall = false
-    /// Whether or not this room currently has a call in progress.
-    var hasOngoingCall: Bool
-    /// Whether or not the user is already part of a call in another room.
-    var isParticipatingInOngoingCall = false
-    var shouldShowCallButton: Bool {
-        isCallingEnabled && !isParticipatingInOngoingCall // Hide the join call button when already in the call
-    }
-    
+
     var isKnockingEnabled = false
     var isKnockableRoom = false
     var canAcceptKnocks = false

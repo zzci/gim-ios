@@ -6,10 +6,6 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-#if IS_MAIN_APP
-import EmbeddedElementCall
-#endif
-
 import Foundation
 import SwiftUI
 
@@ -61,8 +57,6 @@ final class AppSettings {
         case optimizeMediaUploads
         case appAppearance
         case sharePresence
-        
-        case elementCallBaseURLOverride
         
         // Feature flags
         case publicSearchEnabled
@@ -357,16 +351,6 @@ final class AppSettings {
     /// that captions might not be visible to users who are using other Matrix clients.
     let shouldShowMediaCaptionWarning = true
 
-    // MARK: - Element Call
-    
-    #if IS_MAIN_APP
-    // swiftlint:disable:next force_unwrapping
-    let elementCallBaseURL: URL = EmbeddedElementCall.appURL!
-    #endif
-    
-    @UserPreference(key: UserDefaultsKeys.elementCallBaseURLOverride, defaultValue: nil, storageType: .userDefaults(store))
-    var elementCallBaseURLOverride: URL?
-    
     // MARK: - Users
     
     /// Whether to hide the display name and avatar of ignored users as these may contain objectionable content.

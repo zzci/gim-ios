@@ -29,7 +29,6 @@ extension FlowCoordinatorProtocol {
 struct CommonFlowParameters {
     let userSession: UserSessionProtocol
     let bugReportService: BugReportServiceProtocol
-    let elementCallService: ElementCallServiceProtocol
     let timelineControllerFactory: TimelineControllerFactoryProtocol
     let emojiProvider: EmojiProviderProtocol
     let linkMetadataProvider: LinkMetadataProviderProtocol
@@ -40,12 +39,8 @@ struct CommonFlowParameters {
     let userIndicatorController: UserIndicatorControllerProtocol
     let notificationManager: NotificationManagerProtocol
     let stateMachineFactory: StateMachineFactoryProtocol
-    
+
     var windowManager: WindowManagerProtocol {
         appMediator.windowManager
-    }
-
-    var ongoingCallRoomIDPublisher: CurrentValuePublisher<String?, Never> {
-        elementCallService.ongoingCallRoomIDPublisher
     }
 }

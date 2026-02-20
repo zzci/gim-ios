@@ -9,7 +9,6 @@
 import AnalyticsEvents
 import BackgroundTasks
 import Combine
-import Intents
 import MatrixRustSDK
 import Sentry
 import SwiftUI
@@ -25,7 +24,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     private let appDelegate: AppDelegate
     private let appHooks: AppHooks
     private let bugReportService: BugReportServiceProtocol
-    private let elementCallService: ElementCallServiceProtocol
 
     /// Common background task to continue long-running tasks in the background.
     private var backgroundTask: UIBackgroundTaskIdentifier?
@@ -35,7 +33,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         didSet {
             userSessionObserver?.cancel()
             if let userSession {
-                configureElementCallService()
                 configureNotificationManager()
                 observeUserSessionChanges()
                 startSync()
@@ -106,8 +103,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         let analyticsService = AnalyticsService(client: posthogAnalyticsClient, appSettings: appSettings)
         ServiceLocator.shared.register(analytics: analyticsService)
         
-        elementCallService = ElementCallService()
-        
         navigationRootCoordinator = NavigationRootCoordinator()
         
         stateMachine = AppCoordinatorStateMachine()
@@ -171,23 +166,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             }
             .store(in: &cancellables)
         
-        elementCallService.actions
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] action in
-                switch action {
-                case .startCall(let roomID):
-                    self?.handleAppRoute(.call(roomID: roomID))
-                case .receivedIncomingCallRequest:
-                    // When reporting a VoIP call through the CXProvider's `reportNewIncomingVoIPPushPayload`
-                    // the UIApplication states don't change and syncing is neither started nor ran on
-                    // a background task. Handle both manually here.
-                    self?.startSync()
-                    self?.scheduleDelayedSyncStop()
-                default:
-                    break
-                }
-            }
-            .store(in: &cancellables)
     }
     
     func start() {
@@ -241,12 +219,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             switch route {
             case .accountProvisioningLink:
                 handleAppRoute(route)
-            case .genericCallLink(let url):
-                if let userSessionFlowCoordinator {
-                    userSessionFlowCoordinator.handleAppRoute(route, animated: true)
-                } else {
-                    presentCallScreen(genericCallLink: url)
-                }
             case .userProfile(let userID):
                 if isExternalURL {
                     handleAppRoute(route)
@@ -299,17 +271,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     }
     
     func handleUserActivity(_ userActivity: NSUserActivity) {
-        // `INStartVideoCallIntent` is to be replaced with `INStartCallIntent`
-        // but calls from Recents still send it ¯\_(ツ)_/¯
-        guard let intent = userActivity.interaction?.intent as? INStartVideoCallIntent,
-              let contact = intent.contacts?.first,
-              let roomIdentifier = contact.personHandle?.value else {
-            MXLog.error("Failed retrieving information from userActivity: \(userActivity)")
-            return
-        }
-        
-        MXLog.info("Starting call in room: \(roomIdentifier)")
-        handleAppRoute(AppRoute.call(roomID: roomIdentifier))
+        MXLog.info("Received user activity: \(userActivity.activityType)")
     }
     
     // MARK: - AuthenticationFlowCoordinatorDelegate
@@ -706,7 +668,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         let flowParameters = CommonFlowParameters(userSession: userSession,
                                                   bugReportService: bugReportService,
-                                                  elementCallService: elementCallService,
                                                   timelineControllerFactory: TimelineControllerFactory(),
                                                   emojiProvider: EmojiProvider(appSettings: appSettings),
                                                   linkMetadataProvider: LinkMetadataProvider(),
@@ -820,43 +781,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         }
     }
     
-    private func configureElementCallService() {
-        guard let userSession else {
-            fatalError("User session not setup")
-        }
-        
-        elementCallService.setClientProxy(userSession.clientProxy)
-    }
-    
-    private func presentCallScreen(genericCallLink url: URL) {
-        let configuration = ElementCallConfiguration(genericCallLink: url)
-        
-        let callScreenCoordinator = CallScreenCoordinator(parameters: .init(elementCallService: elementCallService,
-                                                                            configuration: configuration,
-                                                                            allowPictureInPicture: false,
-                                                                            appSettings: appSettings,
-                                                                            appHooks: appHooks,
-                                                                            analytics: ServiceLocator.shared.analytics))
-        
-        callScreenCoordinator.actions
-            .sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .pictureInPictureIsAvailable:
-                    break
-                case .pictureInPictureStarted, .pictureInPictureStopped:
-                    // Don't allow PiP when signed out - the user could login at which point we'd
-                    // need to hand over the call from here to the user session flow coordinator.
-                    MXLog.error("Picture in Picture not supported before login.")
-                case .dismiss:
-                    navigationRootCoordinator.setOverlayCoordinator(nil)
-                }
-            }
-            .store(in: &cancellables)
-        
-        navigationRootCoordinator.setOverlayCoordinator(callScreenCoordinator, animated: false)
-    }
-
     private func configureNotificationManager() {
         notificationManager.setUserSession(userSession)
 

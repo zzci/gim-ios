@@ -176,9 +176,6 @@ protocol JoinedRoomProxyProtocol: RoomProxyProtocol {
     func banUser(_ userID: String, reason: String?) async -> Result<Void, RoomProxyError>
     func unbanUser(_ userID: String) async -> Result<Void, RoomProxyError>
     
-    // MARK: - Element Call
-    
-    func elementCallWidgetDriver(deviceID: String) -> ElementCallWidgetDriverProtocol
     func declineCall(notificationID: String) async -> Result<Void, RoomProxyError>
     func subscribeToCallDeclineEvents(rtcNotificationEventID: String, listener: CallDeclineListener) -> Result<TaskHandle, RoomProxyError>
     

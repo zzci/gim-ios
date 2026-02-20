@@ -13,7 +13,6 @@ enum DeveloperOptionsScreenViewModelAction {
 }
 
 struct DeveloperOptionsScreenViewState: BindableState {
-    let elementCallBaseURL: URL
     let appHooks: AppHooks
     var storeSizes: [StoreSize]?
     var bindings: DeveloperOptionsScreenViewStateBindings
@@ -57,8 +56,7 @@ protocol DeveloperOptionsProtocol: AnyObject {
     var focusEventOnNotificationTap: Bool { get set }
     
     var hideUnreadMessagesBadge: Bool { get set }
-    var elementCallBaseURLOverride: URL? { get set }
-    
+
     var publicSearchEnabled: Bool { get set }
     var fuzzyRoomListSearchEnabled: Bool { get set }
     var lowPriorityFilterEnabled: Bool { get set }

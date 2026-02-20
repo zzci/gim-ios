@@ -39,10 +39,6 @@ enum AppRoute: Hashable {
     case childEventOnRoomAlias(eventID: String, alias: String)
     /// The profile of a matrix user (outside of a room).
     case userProfile(userID: String)
-    /// An Element Call running in a particular room
-    case call(roomID: String)
-    /// An Element Call link generated outside of a chat room.
-    case genericCallLink(url: URL)
     /// The settings screen.
     case settings
     /// The setting screen for key backup.
@@ -82,8 +78,7 @@ struct AppRouteURLParser {
             AppGroupURLParser(),
             MatrixPermalinkParser(),
             ElementWebURLParser(domains: appSettings.elementWebHosts),
-            AccountProvisioningURLParser(domain: appSettings.accountProvisioningHost),
-            ElementCallURLParser()
+            AccountProvisioningURLParser(domain: appSettings.accountProvisioningHost)
         ]
     }
     
@@ -129,26 +124,6 @@ private struct AppGroupURLParser: URLParser {
             MXLog.error("Failed decoding share payload with error: \(error)")
             return nil
         }
-    }
-}
-
-/// The parser for Element Call links. This always returns a `.genericCallLink`.
-private struct ElementCallURLParser: URLParser {
-    private let knownHosts = ["g.im"]
-
-    func route(from url: URL) -> AppRoute? {
-        // Element Call not supported, WebRTC not available
-        // https://github.com/element-hq/element-x-ios/issues/1794
-        if ProcessInfo.processInfo.isiOSAppOnMac {
-            return nil
-        }
-
-        // Try to interpret it as a universal link
-        guard let host = url.host, knownHosts.contains(host) else {
-            return nil
-        }
-
-        return .genericCallLink(url: url)
     }
 }
 

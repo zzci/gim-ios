@@ -11,7 +11,6 @@ import SwiftState
 
 enum SpaceSettingsFlowCoordinatorAction {
     case finished(leftRoom: Bool)
-    case presentCallScreen(roomProxy: JoinedRoomProxyProtocol)
     case verifyUser(userID: String)
 }
 
@@ -240,7 +239,7 @@ final class SpaceSettingsFlowCoordinator: FlowCoordinatorProtocol {
             case .transferOwnership:
                 stateMachine.tryEvent(.presentTransferOwnership)
             case .presentRecipientDetails, .presentNotificationSettingsScreen, .presentReportRoomScreen,
-                 .presentInviteUsersScreen, .presentPollsHistory, .presentCall,
+                 .presentInviteUsersScreen, .presentPollsHistory,
                  .presentPinnedEventsTimeline, .presentMediaEventsTimeline, .presentKnockingRequestsListScreen:
                 fatalError("Not handled in the space context")
             }
@@ -395,8 +394,6 @@ final class SpaceSettingsFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .finished:
                 stateMachine.tryEvent(.stopMembersListFlow)
-            case .presentCallScreen(let roomProxy):
-                actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
             case .verifyUser(let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
             }

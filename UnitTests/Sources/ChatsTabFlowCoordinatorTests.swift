@@ -40,7 +40,6 @@ class ChatsTabFlowCoordinatorTests: XCTestCase {
         
         let flowParameters = CommonFlowParameters(userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                                   bugReportService: BugReportServiceMock(.init()),
-                                                  elementCallService: ElementCallServiceMock(.init()),
                                                   timelineControllerFactory: timelineControllerFactory,
                                                   emojiProvider: EmojiProvider(appSettings: ServiceLocator.shared.settings),
                                                   linkMetadataProvider: LinkMetadataProvider(),

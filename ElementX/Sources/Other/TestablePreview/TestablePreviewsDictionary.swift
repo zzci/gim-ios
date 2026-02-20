@@ -24,8 +24,6 @@ enum TestablePreviewsDictionary {
         "BlockedUsersScreen_Previews" : BlockedUsersScreen_Previews.self,
         "BloomModifier_Previews" : BloomModifier_Previews.self,
         "BugReportScreen_Previews" : BugReportScreen_Previews.self,
-        "CallInviteRoomTimelineView_Previews" : CallInviteRoomTimelineView_Previews.self,
-        "CallNotificationRoomTimelineView_Previews" : CallNotificationRoomTimelineView_Previews.self,
         "ChatsSpaceFilterCell_Previews" : ChatsSpaceFilterCell_Previews.self,
         "ChatsSpaceFiltersScreen_Previews" : ChatsSpaceFiltersScreen_Previews.self,
         "CollapsibleRoomTimelineView_Previews" : CollapsibleRoomTimelineView_Previews.self,

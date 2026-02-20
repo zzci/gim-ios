@@ -11,7 +11,6 @@ import SwiftUI
 
 enum RoomMembersFlowCoordinatorAction {
     case finished
-    case presentCallScreen(roomProxy: JoinedRoomProxyProtocol)
     case verifyUser(userID: String)
 }
 
@@ -119,7 +118,7 @@ final class RoomMembersFlowCoordinator: FlowCoordinatorProtocol {
         case .roomAlias, .childRoomAlias, .eventOnRoomAlias, .childEventOnRoomAlias:
             break // These are converted to a room ID route one level above.
         case .accountProvisioningLink, .roomList, .room, .roomDetails, .event,
-             .userProfile, .call, .genericCallLink, .settings, .chatBackupSettings,
+             .userProfile, .settings, .chatBackupSettings,
              .share, .transferOwnership, .thread:
             break
         }
@@ -235,8 +234,6 @@ final class RoomMembersFlowCoordinator: FlowCoordinatorProtocol {
                 stateMachine.tryEvent(.presentUserProfile(userID: userID))
             case .openDirectChat(let roomID):
                 stateMachine.tryEvent(.startRoomFlow(roomID: roomID, via: [], eventID: nil))
-            case .startCall(let roomProxy):
-                actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
             case .verifyUser(let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
             }
@@ -294,8 +291,6 @@ final class RoomMembersFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .openDirectChat(let roomID):
                 stateMachine.tryEvent(.startRoomFlow(roomID: roomID, via: [], eventID: nil))
-            case .startCall(let roomProxy):
-                actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
             case .dismiss:
                 break // Not supported when pushed.
             }
@@ -322,8 +317,6 @@ final class RoomMembersFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 
                 switch action {
-                case .presentCallScreen(let roomProxy):
-                    actionsSubject.send(.presentCallScreen(roomProxy: roomProxy))
                 case .verifyUser(let userID):
                     actionsSubject.send(.verifyUser(userID: userID))
                 case .continueWithSpaceFlow:
