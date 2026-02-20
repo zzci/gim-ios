@@ -6,15 +6,13 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import UIKit
-import WebKit
+import AuthenticationServices
 
-/// Presents a WKWebView for the user's account settings page.
+/// Presents an ASWebAuthenticationSession for the user's account settings page.
 ///
-/// Uses a persistent WKWebsiteDataStore so that cookies are stored within the
-/// app's sandbox. This provides app-level cookie persistence (no re-login each
-/// time) while keeping cookies isolated from Safari. Cookies are automatically
-/// deleted when the app is uninstalled.
+/// Uses ephemeral mode so no cookies are shared with Safari or persisted.
+/// The account management URL from the SDK includes authentication hints,
+/// so the OIDC provider can identify the user without persistent cookies.
 @MainActor
 class OIDCAccountSettingsPresenter: NSObject {
     private let accountURL: URL
@@ -24,8 +22,6 @@ class OIDCAccountSettingsPresenter: NSObject {
     typealias Continuation = AsyncStream<Result<Void, OIDCError>>.Continuation
     private let continuation: Continuation?
 
-    private weak var presentedController: UIViewController?
-
     init(accountURL: URL, presentationAnchor: UIWindow, appSettings: AppSettings, continuation: Continuation? = nil) {
         self.accountURL = accountURL
         self.presentationAnchor = presentationAnchor
@@ -34,109 +30,36 @@ class OIDCAccountSettingsPresenter: NSObject {
         super.init()
     }
 
-    /// Presents a WKWebView for the account settings page.
+    /// Presents a web authentication session for the account settings page.
     func start() {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        let session = ASWebAuthenticationSession(url: accountURL, callback: .oidcRedirectURL(oidcRedirectURL)) { [continuation] _, error in
+            guard let continuation else { return }
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = self
-        webView.customUserAgent = UserAgentBuilder.makeASCIIUserAgent()
+            if error?.isOIDCUserCancellation == true {
+                continuation.yield(.failure(.userCancellation))
+            } else {
+                // User closed the session or an error occurred — treat as success
+                // since the account management action may have already completed.
+                continuation.yield(.success(()))
+            }
 
-        let viewController = WebViewController(webView: webView)
-        viewController.onDismiss = { [weak self] in
-            self?.handleDismissal()
+            continuation.finish()
         }
 
-        let navigationController = UINavigationController(rootViewController: viewController)
-        navigationController.modalPresentationStyle = .formSheet
+        session.prefersEphemeralWebBrowserSession = true
+        session.presentationContextProvider = self
+        session.additionalHeaderFields = [
+            "X-Element-User-Agent": UserAgentBuilder.makeASCIIUserAgent()
+        ]
 
-        presentedController = navigationController
-        topmostViewController()?.present(navigationController, animated: true)
-
-        webView.load(URLRequest(url: accountURL))
-    }
-
-    /// Walks the presentation chain to find the topmost presented view controller.
-    /// This is needed because the settings screen is presented as a modal sheet,
-    /// so `rootViewController` is already presenting and cannot present again.
-    private func topmostViewController() -> UIViewController? {
-        var top = presentationAnchor.rootViewController
-        while let presented = top?.presentedViewController {
-            top = presented
-        }
-        return top
-    }
-
-    private func handleDismissal() {
-        guard let continuation else { return }
-        continuation.yield(.failure(.userCancellation))
-        continuation.finish()
-    }
-
-    private func handleRedirect() {
-        presentedController?.dismiss(animated: true)
-        guard let continuation else { return }
-        continuation.yield(.success(()))
-        continuation.finish()
+        session.start()
     }
 }
 
-// MARK: - WKNavigationDelegate
+// MARK: - ASWebAuthenticationPresentationContextProviding
 
-extension OIDCAccountSettingsPresenter: WKNavigationDelegate {
-    func webView(_ webView: WKWebView,
-                 decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
-        guard let url = navigationAction.request.url else {
-            return .allow
-        }
-
-        // Intercept the OIDC redirect URL
-        if url.absoluteString.hasPrefix(oidcRedirectURL.absoluteString) {
-            handleRedirect()
-            return .cancel
-        }
-
-        return .allow
-    }
-}
-
-// MARK: - WebViewController
-
-/// A simple view controller that wraps a WKWebView with a Done button.
-private class WebViewController: UIViewController {
-    private let webView: WKWebView
-    var onDismiss: (() -> Void)?
-
-    init(webView: WKWebView) {
-        self.webView = webView
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(webView)
-        NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done,
-                                                            target: self,
-                                                            action: #selector(doneTapped))
-    }
-
-    @objc private func doneTapped() {
-        onDismiss?()
-        dismiss(animated: true)
+extension OIDCAccountSettingsPresenter: ASWebAuthenticationPresentationContextProviding {
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        presentationAnchor
     }
 }
