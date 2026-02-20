@@ -124,8 +124,8 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     // MARK: - Private
     
     private var requiresVerification: Bool {
-        // Disabled: SSSS/identity confirmation is not used in this build.
-        false
+        // Check device verification state only (SSSS onboarding flag is not used).
+        userSession.sessionSecurityStatePublisher.value.verificationState == .unverified
     }
     
     private var requiresAppLockSetup: Bool {
