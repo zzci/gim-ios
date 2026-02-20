@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "GIM требуется доступ к камере, для того чтобы отправлять фото и видео";
-"NSFaceIDUsageDescription" = "Для доступа к приложению используется Face ID.";
-"NSLocationWhenInUseUsageDescription" = "GIM необходимо предоставить разрешения для отправки местоположения.";
-"NSMicrophoneUsageDescription" = "Для отправки аудиосообщений GIM необходимо предоставить доступ к микрофону.";
-"NSPhotoLibraryUsageDescription" = "Это позволяет сохранять изображения и видео в библиотеку фотографий.";

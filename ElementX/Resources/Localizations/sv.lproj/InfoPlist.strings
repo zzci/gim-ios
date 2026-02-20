@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "För att ta bilder eller videor och skicka dem som ett meddelande behöver GIM åtkomst till kameran.";
-"NSFaceIDUsageDescription" = "Face ID används för att komma åt din app.";
-"NSLocationWhenInUseUsageDescription" = "Ge platsåtkomst så att GIM kan dela din plats.";
-"NSMicrophoneUsageDescription" = "För att spela in och skicka meddelanden med ljud måste GIM komma åt mikrofonen.";
-"NSPhotoLibraryUsageDescription" = "Detta låter dig spara bilder och videor i ditt fotobibliotek.";

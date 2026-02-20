@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "Per catturare foto o video e inviarli come messaggio, GIM deve accedere alla fotocamera.";
-"NSFaceIDUsageDescription" = "Face ID viene utilizzato per accedere alla tua app.";
-"NSLocationWhenInUseUsageDescription" = "Concedi l'accesso alla localizzazione in modo che GIM possa condividere la tua posizione.";
-"NSMicrophoneUsageDescription" = "Per registrare e inviare messaggi audio, GIM deve accedere al microfono.";
-"NSPhotoLibraryUsageDescription" = "Consente di salvare foto e video nella tua libreria.";

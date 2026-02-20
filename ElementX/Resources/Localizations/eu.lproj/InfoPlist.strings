@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "Argazkiak edo bideoak egiteko eta mezu gisa bidaltzeko GIM-k kamerarako sarbidea behar du.";
-"NSFaceIDUsageDescription" = "Aplikaziora sartzeko Face ID erabiltzen da.";
-"NSLocationWhenInUseUsageDescription" = "Grant location access so that GIM can share your location.";
-"NSMicrophoneUsageDescription" = "To record and send messages with audio, GIM needs to access the microphone.";
-"NSPhotoLibraryUsageDescription" = "This lets you save images and videos to your photo library.";

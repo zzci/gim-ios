@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "Pentru a face fotografii sau videoclipuri și a le trimite ca mesaje, GIM are nevoie de acces la cameră.";
-"NSFaceIDUsageDescription" = "Face ID este utilizat pentru a accesa aplicația.";
-"NSLocationWhenInUseUsageDescription" = "Acordați acces astfel încât GIM să vă poată partaja locația.";
-"NSMicrophoneUsageDescription" = "Pentru a înregistra și trimite mesaje audio, GIM trebuie să acceseze microfonul.";
-"NSPhotoLibraryUsageDescription" = "Permiteți salvarea fotografiilor și videoclipurilor în biblioteca dumneavoastră.";

@@ -1,5 +1,0 @@
-"NSCameraUsageDescription" = "Rasmlar yoki videolar olish va ularni xabar GIM sifatida yuborish uchun kameraga ruxsat kerak boʻladi.";
-"NSFaceIDUsageDescription" = "Face ID ilovangizdan foydalanish uchun ishlatiladi.";
-"NSLocationWhenInUseUsageDescription" = "GIM joylashuvingizni ulashishi uchun joylashuv axborotiga ruxsat bering.";
-"NSMicrophoneUsageDescription" = "Audio xabarlarni yozib olish va yuborish uchun GIM mikrofondan foydalanishga ruxsat olishi kerak.";
-"NSPhotoLibraryUsageDescription" = "Bu sizga rasm va videolarni fotosuratlar kutubxonangizga saqlash imkonini beradi.";
