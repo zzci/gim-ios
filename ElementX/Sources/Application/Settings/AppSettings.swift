@@ -251,10 +251,14 @@ final class AppSettings {
     
     /// Any pre-defined static client registrations for OIDC issuers.
     let oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
-    /// The redirect URL used for OIDC. Uses the app's custom URL scheme so that
+    /// The redirect URL used for OIDC. Uses a custom URL scheme so that
     /// ASWebAuthenticationSession can intercept the callback without requiring
     /// Associated Domains (AASA) validation on a third-party domain.
-    private(set) var oidcRedirectURL: URL = "im.g.message://oidc/callback"
+    ///
+    /// MAS policy requires:
+    /// 1. No authority component (single slash, not double slash)
+    /// 2. Scheme must reverse-DNS match the client_uri host (element.io → io.element.*)
+    private(set) var oidcRedirectURL: URL = "io.element.gim:/oidc/callback"
     
     private(set) lazy var oidcConfiguration = OIDCConfiguration(clientName: InfoPlistReader.main.bundleDisplayName,
                                                                 redirectURI: oidcRedirectURL,
