@@ -203,26 +203,26 @@ final class AppSettings {
     /// The task identifier used for background app refresh. Also used in main target's the Info.plist
     let backgroundAppRefreshTaskIdentifier = "im.g.message.background.refresh"
 
-    /// A URL where users can go read more about the app.
-    private(set) var websiteURL: URL = "https://element.io"
+    /// A URL where users can go read more about the app. Also used as `client_uri` in OIDC.
+    private(set) var websiteURL: URL = "https://g.im"
     /// A URL that contains the app's logo that may be used when showing content in a web view.
-    private(set) var logoURL: URL = "https://element.io/mobile-icon.png"
+    private(set) var logoURL: URL = "https://g.im/mobile-icon.png"
     /// A URL that contains that app's copyright notice.
-    private(set) var copyrightURL: URL = "https://element.io/copyright"
+    private(set) var copyrightURL: URL = "https://g.im/copyright"
     /// A URL that contains the app's Terms of use.
-    private(set) var acceptableUseURL: URL = "https://element.io/acceptable-use-policy-terms"
+    private(set) var acceptableUseURL: URL = "https://g.im/acceptable-use-policy-terms"
     /// A URL that contains the app's Privacy Policy.
-    private(set) var privacyURL: URL = "https://element.io/privacy"
+    private(set) var privacyURL: URL = "https://g.im/privacy"
     /// A URL where users can go read more about encryption in general.
-    private(set) var encryptionURL: URL = "https://element.io/help#encryption"
+    private(set) var encryptionURL: URL = "https://g.im/help#encryption"
     /// A URL where users can go read more about device verification..
-    private(set) var deviceVerificationURL: URL = "https://element.io/help#encryption-device-verification"
+    private(set) var deviceVerificationURL: URL = "https://g.im/help#encryption-device-verification"
     /// A URL where users can go read more about the chat backup.
-    private(set) var chatBackupDetailsURL: URL = "https://element.io/help#encryption5"
+    private(set) var chatBackupDetailsURL: URL = "https://g.im/help#encryption5"
     /// A URL where users can go read more about identity pinning violations
-    private(set) var identityPinningViolationDetailsURL: URL = "https://element.io/help#encryption18"
+    private(set) var identityPinningViolationDetailsURL: URL = "https://g.im/help#encryption18"
     /// A URL describing how history sharing works
-    private(set) var historySharingDetailsURL: URL = "https://element.io/en/help#e2ee-history-sharing"
+    private(set) var historySharingDetailsURL: URL = "https://g.im/help#e2ee-history-sharing"
 
     /// Any domains that Element web may be hosted on - used for handling links.
     private(set) var elementWebHosts = ["app.element.io", "staging.element.io", "develop.element.io"]
@@ -251,14 +251,9 @@ final class AppSettings {
     
     /// Any pre-defined static client registrations for OIDC issuers.
     let oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
-    /// The redirect URL used for OIDC. Uses a custom URL scheme so that
-    /// ASWebAuthenticationSession can intercept the callback without requiring
-    /// Associated Domains (AASA) validation on a third-party domain.
-    ///
-    /// MAS policy requires:
-    /// 1. No authority component (single slash, not double slash)
-    /// 2. Scheme must reverse-DNS match the client_uri host (element.io → io.element.*)
-    private(set) var oidcRedirectURL: URL = "io.element.gim:/oidc/callback"
+    /// The redirect URL used for OIDC. Uses the app's bundle ID as a custom URL scheme so that
+    /// ASWebAuthenticationSession can intercept the callback without requiring AASA validation.
+    private(set) var oidcRedirectURL: URL = "im.g.message://oidc/callback"
     
     private(set) lazy var oidcConfiguration = OIDCConfiguration(clientName: InfoPlistReader.main.bundleDisplayName,
                                                                 redirectURI: oidcRedirectURL,
