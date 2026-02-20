@@ -254,12 +254,11 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             case .otherDevice:
                 presentSessionVerificationScreen()
             case .recoveryKey:
-                presentRecoveryKeyScreen()
+                break // SSSS recovery key not used in this build.
             case .skip:
-                appSettings.hasRunIdentityConfirmationOnboarding = true
-                stateMachine.tryEvent(.nextSkippingIdentityConfirmed)
+                break // SSSS skip not used in this build.
             case .reset:
-                startEncryptionResetFlow()
+                break // SSSS encryption reset not used in this build.
             case .logout:
                 actionsSubject.send(.logout)
             }

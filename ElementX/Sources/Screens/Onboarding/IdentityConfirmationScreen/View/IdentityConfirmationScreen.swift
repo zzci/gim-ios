@@ -12,14 +12,6 @@ import SwiftUI
 struct IdentityConfirmationScreen: View {
     let context: IdentityConfirmationScreenViewModel.Context
     
-    var shouldShowSkipButton: Bool {
-        #if DEBUG
-        !ProcessInfo.isRunningTests
-        #else
-        false
-        #endif
-    }
-    
     var body: some View {
         FullscreenDialog(topPadding: UIConstants.startScreenBreakerScreenTopPadding) {
             screenHeader
@@ -68,18 +60,6 @@ struct IdentityConfirmationScreen: View {
                     }
                     .buttonStyle(.compound(.primary))
                 }
-                
-                if availableActions.contains(.recovery) {
-                    Button(L10n.screenIdentityConfirmationUseRecoveryKey) {
-                        context.send(viewAction: .recoveryKey)
-                    }
-                    .buttonStyle(.compound(.primary))
-                }
-                
-                Button(L10n.screenIdentityConfirmationCannotConfirm) {
-                    context.send(viewAction: .reset)
-                }
-                .buttonStyle(.compound(.secondary))
             } else {
                 Button { /* Placeholder button, there is no action */ } label: {
                     Label {
@@ -91,13 +71,6 @@ struct IdentityConfirmationScreen: View {
                 }
                 .buttonStyle(.compound(.primary))
                 .disabled(true)
-            }
-            
-            if shouldShowSkipButton {
-                Button("\(L10n.actionSkip) 🙉") {
-                    context.send(viewAction: .skip)
-                }
-                .buttonStyle(.compound(.tertiary))
             }
         }
     }
