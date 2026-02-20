@@ -39,11 +39,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         let isQRCodeScanningSupported = !ProcessInfo.processInfo.isiOSAppOnMac
         let defaultHomeserver = authenticationService.homeserver.value.address
 
-        let initialViewState = AuthenticationStartScreenViewState(serverName: nil,
-                                                                   showCreateAccountButton: false,
-                                                                   showQRCodeLoginButton: isQRCodeScanningSupported,
+        let initialViewState = AuthenticationStartScreenViewState(showQRCodeLoginButton: isQRCodeScanningSupported,
                                                                    hideBrandChrome: appSettings.hideBrandChrome,
-                                                                   showHomeserverField: true,
                                                                    bindings: .init(homeserverAddress: defaultHomeserver))
 
         super.init(initialViewState: initialViewState)
@@ -56,10 +53,6 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             state.window = window
         case .loginWithQR:
             actionsSubject.send(.loginWithQR)
-        case .login:
-            break // Manual login button removed; login is done via homeserver field.
-        case .register:
-            break // Create account button removed.
         case .reportProblem:
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
@@ -73,14 +66,6 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
 
     // MARK: - Private
 
-    private func login() async {
-        if let serverName = state.serverName {
-            await configureAccountProvider(serverName, loginHint: provisioningParameters?.loginHint)
-        } else {
-            actionsSubject.send(.login) // No need to configure anything here, continue the flow.
-        }
-    }
-
     private func loginWithCustomHomeserver() async {
         let homeserverAddress = state.bindings.homeserverAddress.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !homeserverAddress.isEmpty else { return }
@@ -90,12 +75,16 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
 
         switch await authenticationService.configure(for: homeserverAddress, flow: .login) {
         case .success:
-            guard authenticationService.homeserver.value.loginMode.supportsOIDCFlow else {
+            let loginMode = authenticationService.homeserver.value.loginMode
+            MXLog.info("Homeserver configured successfully, loginMode: \(loginMode)")
+
+            guard loginMode.supportsOIDCFlow else {
                 actionsSubject.send(.loginDirectlyWithPassword(loginHint: nil))
                 return
             }
 
-            guard let window = state.window else {
+            guard let window = resolveWindow() else {
+                MXLog.error("OIDC login failed: no presentation window available")
                 displayError(.genericError)
                 return
             }
@@ -103,12 +92,29 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             switch await authenticationService.urlForOIDCLogin(loginHint: nil) {
             case .success(let oidcData):
                 actionsSubject.send(.loginDirectlyWithOIDC(data: oidcData, window: window))
-            case .failure:
+            case .failure(let error):
+                MXLog.error("OIDC URL generation failed: \(error)")
                 displayError(.genericError)
             }
         case .failure(let error):
+            MXLog.error("Homeserver configuration failed: \(error)")
             handleHomeserverError(error)
         }
+    }
+
+    /// Returns the presentation window, falling back to the key window if introspection hasn't fired.
+    private func resolveWindow() -> UIWindow? {
+        if let window = state.window {
+            return window
+        }
+        let window = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
+        if let window {
+            state.window = window
+        }
+        return window
     }
 
     private func configureAccountProvider(_ accountProvider: String, loginHint: String? = nil) async {
@@ -125,7 +131,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             return
         }
 
-        guard let window = state.window else {
+        guard let window = resolveWindow() else {
+            MXLog.error("OIDC login failed: no presentation window available")
             displayError(.genericError)
             return
         }
@@ -133,7 +140,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         switch await authenticationService.urlForOIDCLogin(loginHint: loginHint) {
         case .success(let oidcData):
             actionsSubject.send(.loginDirectlyWithOIDC(data: oidcData, window: window))
-        case .failure:
+        case .failure(let error):
+            MXLog.error("OIDC URL generation failed: \(error)")
             displayError(.genericError)
         }
     }

@@ -12,20 +12,16 @@ import SwiftUI
 
 enum AuthenticationStartScreenCoordinatorAction {
     case loginWithQR
-    case login
-    case register
     case reportProblem
-    
+
     case loginDirectlyWithOIDC(data: OIDCAuthorizationDataProxy, window: UIWindow)
     case loginDirectlyWithPassword(loginHint: String?)
 }
 
 enum AuthenticationStartScreenViewModelAction: Equatable {
     case loginWithQR
-    case login
-    case register
     case reportProblem
-    
+
     case loginDirectlyWithOIDC(data: OIDCAuthorizationDataProxy, window: UIWindow)
     case loginDirectlyWithPassword(loginHint: String?)
 }
@@ -34,14 +30,9 @@ struct AuthenticationStartScreenViewState: BindableState {
     /// The presentation anchor used for OIDC authentication.
     var window: UIWindow?
 
-    let serverName: String?
-    let showCreateAccountButton: Bool
     let showQRCodeLoginButton: Bool
 
     let hideBrandChrome: Bool
-
-    /// Whether to show the homeserver address field on the start screen.
-    let showHomeserverField: Bool
 
     var bindings = AuthenticationStartScreenViewStateBindings()
 
@@ -51,16 +42,6 @@ struct AuthenticationStartScreenViewState: BindableState {
     /// Whether the homeserver text field is showing an error.
     var isShowingHomeserverError: Bool {
         homeserverFooterErrorMessage != nil
-    }
-
-    var loginButtonTitle: String {
-        if let serverName {
-            L10n.screenOnboardingSignInTo(serverName)
-        } else if showQRCodeLoginButton {
-            L10n.screenOnboardingSignInManually
-        } else {
-            L10n.actionContinue
-        }
     }
 }
 
@@ -83,8 +64,6 @@ enum AuthenticationStartScreenViewAction {
     case updateWindow(UIWindow)
 
     case loginWithQR
-    case login
-    case register
     case reportProblem
 
     /// Clear any homeserver footer errors when editing the text field.

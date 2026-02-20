@@ -1219,12 +1219,6 @@
 "screen_roomlist_main_space_title" = "所有聊天室";
 "screen_roomlist_mark_as_read" = "標為已讀";
 "screen_roomlist_mark_as_unread" = "標為未讀";
-"screen_server_confirmation_message_login_element_dot_io" = "供 Element 員工使用的私人伺服器。";
-"screen_server_confirmation_message_login_matrix_dot_org" = "Matrix 是一個開放網路，為了安全且去中心化的通訊而生。";
-"screen_server_confirmation_message_register" = "您的所有對話將保存於此，就如同您的電子郵件供應商會保存您的電子郵件一樣。";
-"screen_server_confirmation_title_login" = "您即將登入 %1$@";
-"screen_server_confirmation_title_picker_mode" = "選擇帳號提供者";
-"screen_server_confirmation_title_register" = "您即將在 %1$@ 建立帳號";
 "screen_session_verification_cancelled_subtitle" = "似乎出了一點問題。有可能是因為等候逾時，或是請求被拒絕。";
 "screen_session_verification_compare_emojis_subtitle" = "請確認以下表情符號是否與您其他裝置上顯示的符號相符。";
 "screen_session_verification_compare_emojis_title" = "比對表情符號";
@@ -1532,7 +1526,6 @@
 "screen_room_timeline_reactions_show_less" = "較少";
 "screen_roomlist_filter_invites" = "邀請";
 "screen_roomlist_filter_people" = "夥伴";
-"screen_server_confirmation_change_server" = "更改帳號提供者";
 "screen_session_verification_device_verified" = "裝置已驗證";
 "screen_session_verification_request_failure_subtitle" = "請求逾時、請求被拒或是驗證不符。";
 "screen_session_verification_request_failure_title" = "驗證失敗。";

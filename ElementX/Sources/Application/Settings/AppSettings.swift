@@ -251,8 +251,10 @@ final class AppSettings {
     
     /// Any pre-defined static client registrations for OIDC issuers.
     let oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
-    /// The redirect URL used for OIDC. This no longer uses universal links so we don't need the bundle ID to avoid conflicts between Element X, Nightly and PR builds.
-    private(set) var oidcRedirectURL: URL = "https://element.io/oidc/login"
+    /// The redirect URL used for OIDC. Uses the app's custom URL scheme so that
+    /// ASWebAuthenticationSession can intercept the callback without requiring
+    /// Associated Domains (AASA) validation on a third-party domain.
+    private(set) var oidcRedirectURL: URL = "im.g.message://oidc/callback"
     
     private(set) lazy var oidcConfiguration = OIDCConfiguration(clientName: InfoPlistReader.main.bundleDisplayName,
                                                                 redirectURI: oidcRedirectURL,
@@ -261,11 +263,6 @@ final class AppSettings {
                                                                 tosURI: acceptableUseURL,
                                                                 policyURI: privacyURL,
                                                                 staticRegistrations: oidcStaticRegistrations.mapKeys { $0.absoluteString })
-    
-    /// Whether or not the Create Account button is shown on the start screen.
-    ///
-    /// **Note:** Setting this to false doesn't prevent someone from creating an account when the selected homeserver's MAS allows registration.
-    let showCreateAccountButton = true
     
     // MARK: - Notifications
     

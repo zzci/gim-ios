@@ -3043,24 +3043,6 @@ internal enum L10n {
   internal static var screenSecurityAndPrivacyRoomVisibilitySectionHeader: String { return L10n.tr("Localizable", "screen_security_and_privacy_room_visibility_section_header") }
   /// Security & privacy
   internal static var screenSecurityAndPrivacyTitle: String { return L10n.tr("Localizable", "screen_security_and_privacy_title") }
-  /// Change account provider
-  internal static var screenServerConfirmationChangeServer: String { return L10n.tr("Localizable", "screen_server_confirmation_change_server") }
-  /// A private server for Element employees.
-  internal static var screenServerConfirmationMessageLoginElementDotIo: String { return L10n.tr("Localizable", "screen_server_confirmation_message_login_element_dot_io") }
-  /// Matrix is an open network for secure, decentralised communication.
-  internal static var screenServerConfirmationMessageLoginMatrixDotOrg: String { return L10n.tr("Localizable", "screen_server_confirmation_message_login_matrix_dot_org") }
-  /// This is where your conversations will live — just like you would use an email provider to keep your emails.
-  internal static var screenServerConfirmationMessageRegister: String { return L10n.tr("Localizable", "screen_server_confirmation_message_register") }
-  /// You’re about to sign in to %1$@
-  internal static func screenServerConfirmationTitleLogin(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "screen_server_confirmation_title_login", String(describing: p1))
-  }
-  /// Choose account provider
-  internal static var screenServerConfirmationTitlePickerMode: String { return L10n.tr("Localizable", "screen_server_confirmation_title_picker_mode") }
-  /// You’re about to create an account on %1$@
-  internal static func screenServerConfirmationTitleRegister(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "screen_server_confirmation_title_register", String(describing: p1))
-  }
   /// Something doesn’t seem right. Either the request timed out or the request was denied.
   internal static var screenSessionVerificationCancelledSubtitle: String { return L10n.tr("Localizable", "screen_session_verification_cancelled_subtitle") }
   /// Confirm that the emojis below match those shown on your other device.

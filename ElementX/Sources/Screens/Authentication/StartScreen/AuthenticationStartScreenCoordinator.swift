@@ -21,11 +21,11 @@ final class AuthenticationStartScreenCoordinator: CoordinatorProtocol {
     private var viewModel: AuthenticationStartScreenViewModelProtocol
     private let actionsSubject: PassthroughSubject<AuthenticationStartScreenCoordinatorAction, Never> = .init()
     private var cancellables = Set<AnyCancellable>()
-    
+
     var actions: AnyPublisher<AuthenticationStartScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-    
+
     init(parameters: AuthenticationStartScreenParameters) {
         viewModel = AuthenticationStartScreenViewModel(authenticationService: parameters.authenticationService,
                                                        provisioningParameters: parameters.provisioningParameters,
@@ -33,24 +33,19 @@ final class AuthenticationStartScreenCoordinator: CoordinatorProtocol {
                                                        appSettings: parameters.appSettings,
                                                        userIndicatorController: parameters.userIndicatorController)
     }
-    
+
     // MARK: - Public
-    
+
     func start() {
         viewModel.actions
             .sink { [weak self] action in
                 guard let self else { return }
-                
+
                 switch action {
                 case .loginWithQR:
                     actionsSubject.send(.loginWithQR)
-                case .login:
-                    actionsSubject.send(.login)
-                case .register:
-                    actionsSubject.send(.register)
                 case .reportProblem:
                     actionsSubject.send(.reportProblem)
-                
                 case .loginDirectlyWithOIDC(let data, let window):
                     actionsSubject.send(.loginDirectlyWithOIDC(data: data, window: window))
                 case .loginDirectlyWithPassword(let loginHint):
@@ -59,7 +54,7 @@ final class AuthenticationStartScreenCoordinator: CoordinatorProtocol {
             }
             .store(in: &cancellables)
     }
-    
+
     func toPresentable() -> AnyView {
         AnyView(AuthenticationStartScreen(context: viewModel.context))
     }

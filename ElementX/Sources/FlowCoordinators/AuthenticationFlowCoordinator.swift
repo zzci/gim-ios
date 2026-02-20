@@ -235,8 +235,6 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                 switch action {
                 case .loginWithQR:
                     stateMachine.tryEvent(.loginWithQR)
-                case .login, .register:
-                    break // Manual login/register buttons removed; login is done via homeserver field.
                 case .reportProblem:
                     stateMachine.tryEvent(.reportProblem)
                 case .loginDirectlyWithOIDC(let oidcData, let window):
