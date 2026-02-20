@@ -52,9 +52,20 @@ class OIDCAccountSettingsPresenter: NSObject {
         navigationController.modalPresentationStyle = .formSheet
 
         presentedController = navigationController
-        presentationAnchor.rootViewController?.present(navigationController, animated: true)
+        topmostViewController()?.present(navigationController, animated: true)
 
         webView.load(URLRequest(url: accountURL))
+    }
+
+    /// Walks the presentation chain to find the topmost presented view controller.
+    /// This is needed because the settings screen is presented as a modal sheet,
+    /// so `rootViewController` is already presenting and cannot present again.
+    private func topmostViewController() -> UIViewController? {
+        var top = presentationAnchor.rootViewController
+        while let presented = top?.presentedViewController {
+            top = presented
+        }
+        return top
     }
 
     private func handleDismissal() {
