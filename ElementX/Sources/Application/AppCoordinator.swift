@@ -958,7 +958,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         #if DEBUG
         options.enabled = false
         #else
-        options.enabled = appSettings.analyticsConsentState == .optedIn
+        options.enabled = true
         #endif
 
         options.dsn = bugReportSentryURL.absoluteString

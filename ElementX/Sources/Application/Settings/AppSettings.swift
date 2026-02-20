@@ -250,7 +250,7 @@ final class AppSettings {
     // MARK: - Authentication
     
     /// Any pre-defined static client registrations for OIDC issuers.
-    let oidcStaticRegistrations: [URL: String] = ["https://id.thirdroom.io/realms/thirdroom": "elementx"]
+    let oidcStaticRegistrations: [URL: String] = [:]
     /// The redirect URL used for OIDC. Uses the app's bundle ID as a custom URL scheme so that
     /// ASWebAuthenticationSession can intercept the callback without requiring AASA validation.
     private(set) var oidcRedirectURL: URL = "im.g.message://oidc/callback"
@@ -309,10 +309,10 @@ final class AppSettings {
     // MARK: - Bug report
     
     let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(.disabled)
-    /// Set your Sentry DSN here to enable crash reporting. Nil disables Sentry.
-    let bugReportSentryURL: URL? = nil
-    /// Set your Sentry Rust SDK DSN here. Nil disables Rust SDK tracing to Sentry.
-    let bugReportSentryRustURL: URL? = nil
+    // swiftlint:disable:next force_unwrapping
+    let bugReportSentryURL: URL? = URL(string: "https://4d5bbbd5fbf8fd0228af5eb5ea794853@o4510919240318976.ingest.de.sentry.io/4510919242088528")
+    // swiftlint:disable:next force_unwrapping
+    let bugReportSentryRustURL: URL? = URL(string: "https://4e7ba49579b9edce2c9fd483c74bb416@o4510919240318976.ingest.de.sentry.io/4510919247528016")
     /// The name allocated by the bug report server
     private(set) var bugReportApplicationID = "gim-ios"
     
@@ -377,7 +377,7 @@ final class AppSettings {
     /// maptiler base url
     /// Set your MapTiler API key (from https://www.maptiler.com/) to enable maps.
     private(set) var mapTilerConfiguration = MapTilerConfiguration(baseURL: "https://api.maptiler.com/maps",
-                                                                   apiKey: nil,
+                                                                   apiKey: "TJGpDrrYrz8Txn1HZSvV",
                                                                    lightStyleID: "9bc819c8-e627-474a-a348-ec144fe3d810",
                                                                    darkStyleID: "dea61faf-292b-4774-9660-58fcef89a7f3")
     
