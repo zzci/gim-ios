@@ -9,6 +9,7 @@
 import Foundation
 @preconcurrency import KeychainAccess
 import MatrixRustSDK
+import Security
 
 enum KeychainControllerService: String {
     case sessions
@@ -35,8 +36,69 @@ final class KeychainController: KeychainControllerProtocol {
     }
 
     init(service: KeychainControllerService, accessGroup: String) {
-        restorationTokenKeychain = Keychain(service: service.restorationTokenID, accessGroup: accessGroup)
-        mainKeychain = Keychain(service: service.mainID, accessGroup: accessGroup)
+        let resolvedGroup = Self.resolveAccessGroup(preferred: accessGroup)
+
+        if let resolvedGroup {
+            restorationTokenKeychain = Keychain(service: service.restorationTokenID, accessGroup: resolvedGroup)
+            mainKeychain = Keychain(service: service.mainID, accessGroup: resolvedGroup)
+        } else {
+            // No explicit access group — uses app's default (no extension sharing).
+            restorationTokenKeychain = Keychain(service: service.restorationTokenID)
+            mainKeychain = Keychain(service: service.mainID)
+        }
+    }
+
+    /// Resolves the actual keychain access group at runtime.
+    ///
+    /// On sideloaded/re-signed builds the team ID embedded in Info.plist
+    /// (e.g. `7J4U792NQT.im.g.message`) no longer matches the entitlements
+    /// which contain the sideloading tool's team ID. This causes all keychain
+    /// operations with the hardcoded access group to fail.
+    ///
+    /// This method first probes the preferred group; if that fails it asks
+    /// the Security framework for the actual access group derived from the
+    /// current signing identity.
+    private static func resolveAccessGroup(preferred: String) -> String? {
+        // 1. Try the preferred access group (works for normal Xcode / App Store builds)
+        let probe = Keychain(service: "im.g.keychain.probe", accessGroup: preferred)
+        do {
+            try probe.set("1", key: "probe")
+            try probe.remove("probe")
+            return preferred
+        } catch {
+            MXLog.warning("Preferred keychain access group '\(preferred)' is not accessible: \(error)")
+        }
+
+        // 2. Discover the actual access group from the signing identity
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "im.g.keychain.probe",
+            kSecAttrAccount as String: "access_group_probe",
+            kSecValueData as String: Data("1".utf8),
+            kSecReturnAttributes as String: true
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemAdd(addQuery as CFDictionary, &result)
+
+        defer {
+            let deleteQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: "im.g.keychain.probe",
+                kSecAttrAccount as String: "access_group_probe"
+            ]
+            SecItemDelete(deleteQuery as CFDictionary)
+        }
+
+        if status == errSecSuccess,
+           let attrs = result as? [String: Any],
+           let actualGroup = attrs[kSecAttrAccessGroup as String] as? String {
+            MXLog.info("Resolved keychain access group to: \(actualGroup) (preferred was: \(preferred))")
+            return actualGroup
+        }
+
+        MXLog.error("Could not resolve any keychain access group, falling back to default")
+        return nil
     }
     
     // MARK: - Restoration Tokens

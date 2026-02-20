@@ -893,6 +893,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             guard let self else { return }
             switch action {
             case .lockApp:
+                // Only lock the app if there's an active user session.
+                // Prevents PIN screen from showing before login.
+                guard userSession != nil else { return }
                 windowManager.switchToAlternate()
             case .unlockApp:
                 windowManager.switchToMain()

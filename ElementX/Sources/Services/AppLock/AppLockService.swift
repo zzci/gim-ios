@@ -27,8 +27,10 @@ class AppLockService: AppLockServiceProtocol {
             return try keychainController.containsPINCode()
         } catch {
             MXLog.error("Keychain access error: \(error)")
-            MXLog.error("Locking the app.")
-            return true
+            // Return false on error to avoid locking users out when keychain
+            // access fails (e.g. on sideloaded/re-signed builds where the
+            // keychain access group may not match the signing identity).
+            return false
         }
     }
     
