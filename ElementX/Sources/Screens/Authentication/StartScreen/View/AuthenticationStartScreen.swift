@@ -25,10 +25,8 @@ struct AuthenticationStartScreen: View {
                     .frame(width: geometry.size.width)
                     .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.hidden)
 
-                buttons
+                homeserverField
                     .frame(width: geometry.size.width)
-                    .padding(.bottom, UIConstants.actionButtonBottomPadding)
-                    .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 16)
                     .padding(.top, 8)
 
                 Spacer()
@@ -37,9 +35,7 @@ struct AuthenticationStartScreen: View {
             .frame(maxHeight: .infinity)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12) {
-                    if context.viewState.showHomeserverField {
-                        homeserverField
-                    }
+                    buttons
 
                     versionText
                         .font(.compound.bodySM)
@@ -52,6 +48,9 @@ struct AuthenticationStartScreen: View {
                 }
                 .padding(.bottom)
             }
+        }
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
         .navigationBarHidden(true)
         .background {
@@ -97,7 +96,7 @@ struct AuthenticationStartScreen: View {
         .readableFrame()
     }
 
-    /// The main action buttons.
+    /// QR code login button at the bottom.
     var buttons: some View {
         VStack(spacing: 16) {
             if context.viewState.showQRCodeLoginButton {
@@ -107,27 +106,14 @@ struct AuthenticationStartScreen: View {
                 .buttonStyle(.compound(.primary))
                 .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.signInWithQr)
             }
-
-            Button { context.send(viewAction: .login) } label: {
-                Text(context.viewState.loginButtonTitle)
-            }
-            .buttonStyle(.compound(.primary))
-            .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.signIn)
-
-            if context.viewState.showCreateAccountButton {
-                Button { context.send(viewAction: .register) } label: {
-                    Text(L10n.screenCreateAccountTitle)
-                }
-                .buttonStyle(.compound(.tertiary))
-            }
         }
-        .padding(.horizontal, verticalSizeClass == .compact ? 128 : 24)
+        .padding(.horizontal, 24)
         .readableFrame()
     }
 
-    /// The homeserver address field shown at the bottom.
+    /// The homeserver address field and continue button.
     var homeserverField: some View {
-        HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 24) {
             TextField(L10n.commonServerUrl, text: $context.homeserverAddress)
                 .textFieldStyle(.element(footerText: context.viewState.homeserverFooterErrorMessage.map { Text($0) },
                                          state: context.viewState.isShowingHomeserverError ? .error : .default,
@@ -136,14 +122,13 @@ struct AuthenticationStartScreen: View {
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .onChange(of: context.homeserverAddress) { context.send(viewAction: .clearHomeserverError) }
-                .submitLabel(.go)
+                .submitLabel(.done)
                 .onSubmit(submitHomeserver)
 
             Button(action: submitHomeserver) {
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.compound.headingLG)
-                    .foregroundColor(.compound.iconAccentPrimary)
+                Text(L10n.actionContinue)
             }
+            .buttonStyle(.compound(.primary))
             .disabled(context.homeserverAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.homeserverConfirm)
         }

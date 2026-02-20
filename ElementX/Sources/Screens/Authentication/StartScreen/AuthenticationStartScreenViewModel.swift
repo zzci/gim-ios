@@ -37,30 +37,14 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         canReportProblem = isBugReportServiceEnabled
 
         let isQRCodeScanningSupported = !ProcessInfo.processInfo.isiOSAppOnMac
-
-        let showHomeserverField = appSettings.allowOtherAccountProviders && provisioningParameters == nil
         let defaultHomeserver = authenticationService.homeserver.value.address
 
-        let initialViewState = if !appSettings.allowOtherAccountProviders {
-            AuthenticationStartScreenViewState(serverName: appSettings.accountProviders.count == 1 ? appSettings.accountProviders[0] : nil,
-                                               showCreateAccountButton: false,
-                                               showQRCodeLoginButton: isQRCodeScanningSupported,
-                                               hideBrandChrome: appSettings.hideBrandChrome,
-                                               showHomeserverField: false)
-        } else if let provisioningParameters {
-            AuthenticationStartScreenViewState(serverName: provisioningParameters.accountProvider,
-                                               showCreateAccountButton: false,
-                                               showQRCodeLoginButton: false,
-                                               hideBrandChrome: appSettings.hideBrandChrome,
-                                               showHomeserverField: false)
-        } else {
-            AuthenticationStartScreenViewState(serverName: nil,
-                                               showCreateAccountButton: appSettings.showCreateAccountButton,
-                                               showQRCodeLoginButton: isQRCodeScanningSupported,
-                                               hideBrandChrome: appSettings.hideBrandChrome,
-                                               showHomeserverField: showHomeserverField,
-                                               bindings: .init(homeserverAddress: defaultHomeserver))
-        }
+        let initialViewState = AuthenticationStartScreenViewState(serverName: nil,
+                                                                   showCreateAccountButton: false,
+                                                                   showQRCodeLoginButton: isQRCodeScanningSupported,
+                                                                   hideBrandChrome: appSettings.hideBrandChrome,
+                                                                   showHomeserverField: true,
+                                                                   bindings: .init(homeserverAddress: defaultHomeserver))
 
         super.init(initialViewState: initialViewState)
     }
@@ -73,9 +57,9 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
         case .loginWithQR:
             actionsSubject.send(.loginWithQR)
         case .login:
-            Task { await login() }
+            break // Manual login button removed; login is done via homeserver field.
         case .register:
-            actionsSubject.send(.register)
+            break // Create account button removed.
         case .reportProblem:
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
