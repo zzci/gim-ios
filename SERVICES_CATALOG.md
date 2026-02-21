@@ -1,6 +1,6 @@
 # GIM Services Catalog
 
-A comprehensive analysis of all 28 services in the Element X iOS codebase, including their purpose, responsibilities, dependencies, and usage patterns.
+A comprehensive analysis of all 27 services in the Element X iOS codebase, including their purpose, responsibilities, dependencies, and usage patterns.
 
 **Analyzed Date:** February 2026
 **Repository:** GIM (Element X iOS Fork) at `/app/ai/matrix/element-x-ios`
@@ -244,7 +244,6 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 - Upload/download media
 - Handle verification state
 - Monitor notification settings
-- Manage spaces
 - Send queue status
 - Load and cache user data
 - Decrypt timeline events
@@ -259,7 +258,6 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 - `NotificationSettings` - Notification rules
 - `SecureBackupController` - E2E backup
 - `SessionVerificationController` - Device verification
-- `SpaceService` - Space management
 
 **Notable Patterns:**
 - Large class (600+ lines) - may need refactoring
@@ -816,47 +814,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 
 ---
 
-### 22. **Spaces Service**
-
-**Purpose:** Manage Matrix spaces (room hierarchies)
-
-**Key Files:**
-- `SpaceServiceProxyProtocol.swift` - Service interface
-- `SpaceServiceProxy.swift` - Implementation
-- `SpaceRoomListProxy.swift` - Room list within space
-- `SpaceRoomListProxyProtocol.swift` - Room list interface
-- `LeaveSpaceHandleProxy.swift` - Leave operation
-- `SpaceServiceRoom.swift` - Space metadata
-
-**Key Types:**
-- `SpaceServiceProxy` - Main space service
-- `SpaceServiceRoom` - Space with metadata
-- `SpaceServiceFilter` - Filtered space list
-- `SpaceRoomListProxy` - Paginated room list
-
-**Responsibilities:**
-- List top-level spaces
-- Get space by ID
-- Join/leave spaces
-- Get space parent relationships
-- List editable spaces
-- Manage child-parent relationships
-- Filter rooms by space
-
-**Dependencies:**
-- Rust SDK space service
-- Room list provider
-
-**Notable Patterns:**
-- Hierarchical filtering
-- Parent-child relationships
-- Editable space distinction
-
-**Active:** Yes - Space management feature
-
----
-
-### 23. **StateMachine Service**
+### 22. **StateMachine Service**
 
 **Purpose:** Factory for flow coordinator state machines
 
@@ -887,7 +845,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 
 ---
 
-### 24. **Timeline Service**
+### 23. **Timeline Service**
 
 **Purpose:** Manage room message timelines and threading
 
@@ -941,7 +899,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 
 ---
 
-### 25. **Users Service**
+### 24. **Users Service**
 
 **Purpose:** Handle user discovery and profile information
 
@@ -973,7 +931,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 
 ---
 
-### 26. **VoiceMessage Service**
+### 25. **VoiceMessage Service**
 
 **Purpose:** Record, playback, and send voice messages
 
@@ -1032,7 +990,7 @@ UserSession
 └── Passed to: Screens and coordinators
 
 ClientProxy
-├── Creates: RoomSummaryProvider, NotificationSettings, SpaceService
+├── Creates: RoomSummaryProvider, NotificationSettings
 ├── Manages: SyncService, RoomListService
 └── Delegates to: Rust SDK
 ```
@@ -1069,7 +1027,6 @@ ClientProxy
 
 ### Direct SDK Usage
 - **Authentication** - Creates `Client` via factory
-- **Spaces** - Uses `SpaceService` from SDK
 - **Users** - Uses user discovery API
 - **RoomDirectory** - Uses directory search API
 
@@ -1122,9 +1079,9 @@ protocol MyServiceProtocol { ... }
 
 | Metric | Value |
 |--------|-------|
-| Total Services | 28 |
-| Protocol-based | 28 (100%) |
-| Wrapping Rust SDK | 16 |
+| Total Services | 27 |
+| Protocol-based | 27 (100%) |
+| Wrapping Rust SDK | 15 |
 | Platform-specific | 12 |
 | Core services | 8 |
 | Total files | 180+ |
@@ -1142,7 +1099,7 @@ ClientProxy            Timeline               AppLock
 Authentication         Room                   Keychain
 UserSession            Media                  Emojis
                        Notifications          Polls
-                       Spaces                 BugReport
+                                              BugReport
                                              StateMachine
 ```
 

@@ -19,23 +19,21 @@ enum UserSessionFlowCoordinatorAction {
 }
 
 class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
-    enum HomeTab: Hashable { case chats, spaces }
-    
+    enum HomeTab: Hashable { case chats }
+
     private let navigationRootCoordinator: NavigationRootCoordinator
     private let navigationTabCoordinator: NavigationTabCoordinator<HomeTab>
     private let appLockService: AppLockServiceProtocol
     private let flowParameters: CommonFlowParameters
-    
+
     private var userSession: UserSessionProtocol {
         flowParameters.userSession
     }
-    
+
     private let onboardingFlowCoordinator: OnboardingFlowCoordinator
     private let onboardingStackCoordinator: NavigationStackCoordinator
     private let chatsTabFlowCoordinator: ChatsTabFlowCoordinator
     private let chatsTabDetails: NavigationTabCoordinator<HomeTab>.TabDetails
-    private let spacesTabFlowCoordinator: SpacesTabFlowCoordinator
-    private let spacesTabDetails: NavigationTabCoordinator<HomeTab>.TabDetails
     
     // periphery:ignore - retaining purpose
     private var settingsFlowCoordinator: SettingsFlowCoordinator?
@@ -84,22 +82,16 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                                                           flowParameters: flowParameters)
         chatsTabDetails = .init(tag: HomeTab.chats, title: L10n.screenHomeTabChats, icon: \.chat, selectedIcon: \.chatSolid)
         chatsTabDetails.navigationSplitCoordinator = chatsSplitCoordinator
-        
-        let spacesSplitCoordinator = NavigationSplitCoordinator(placeholderCoordinator: PlaceholderScreenCoordinator(hideBrandChrome: flowParameters.appSettings.hideBrandChrome))
-        spacesTabFlowCoordinator = SpacesTabFlowCoordinator(navigationSplitCoordinator: spacesSplitCoordinator,
-                                                            flowParameters: flowParameters)
-        spacesTabDetails = .init(tag: HomeTab.spaces, title: L10n.screenHomeTabSpaces, icon: \.space, selectedIcon: \.spaceSolid)
-        spacesTabDetails.navigationSplitCoordinator = spacesSplitCoordinator
-        
+        chatsTabDetails.barVisibilityOverride = .hidden
+
         onboardingStackCoordinator = NavigationStackCoordinator()
         onboardingFlowCoordinator = OnboardingFlowCoordinator(isNewLogin: isNewLogin,
                                                               appLockService: appLockService,
                                                               navigationStackCoordinator: onboardingStackCoordinator,
                                                               flowParameters: flowParameters)
-        
+
         navigationTabCoordinator.setTabs([
-            .init(coordinator: chatsSplitCoordinator, details: chatsTabDetails),
-            .init(coordinator: spacesSplitCoordinator, details: spacesTabDetails)
+            .init(coordinator: chatsSplitCoordinator, details: chatsTabDetails)
         ])
         
         stateMachine = flowParameters.stateMachineFactory.makeUserSessionFlowStateMachine(state: .initial)
@@ -131,9 +123,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
              .share, .transferOwnership, .thread:
             clearPresentedSheets(animated: animated) // Make sure the presented route is visible.
             chatsTabFlowCoordinator.handleAppRoute(appRoute, animated: animated)
-            if navigationTabCoordinator.selectedTab != .chats {
-                navigationTabCoordinator.selectedTab = .chats
-            }
         }
     }
     
@@ -158,8 +147,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
     }
     
     func isDisplayingRoomScreen(withRoomID roomID: String) -> Bool {
-        guard navigationTabCoordinator.selectedTab == .chats else { return false }
-        return chatsTabFlowCoordinator.isDisplayingRoomScreen(withRoomID: roomID)
+        chatsTabFlowCoordinator.isDisplayingRoomScreen(withRoomID: roomID)
     }
     
     // MARK: - Private
@@ -169,7 +157,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
             guard let self else { return }
             
             chatsTabFlowCoordinator.start()
-            spacesTabFlowCoordinator.start()
             attemptStartingOnboarding()
         }
         
@@ -191,7 +178,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 switch action {
                 case .switchToChatsTab:
-                    navigationTabCoordinator.selectedTab = .chats
+                    break
                 case .showSettings:
                     handleAppRoute(.settings, animated: true)
                 case .showChatBackupSettings:
@@ -203,19 +190,7 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                 }
             }
             .store(in: &cancellables)
-        
-        spacesTabFlowCoordinator.actionsPublisher
-            .sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .verifyUser(let userID):
-                    presentSessionVerificationScreen(flow: .userInitiator(userID: userID))
-                case .showSettings:
-                    stateMachine.tryEvent(.showSettingsScreen)
-                }
-            }
-            .store(in: &cancellables)
-        
+
         userSession.sessionSecurityStatePublisher
             .map(\.verificationState)
             .filter { $0 != .unknown }
@@ -264,14 +239,6 @@ class UserSessionFlowCoordinator: FlowCoordinatorProtocol {
                     logout()
                 }
             }
-            .store(in: &cancellables)
-        
-        userSession.clientProxy.spaceService.topLevelSpacesPublisher
-            .combineLatest(flowParameters.appSettings.$createSpaceEnabled)
-            .map { topLevelSpaces, isCreateSpaceEnabled in
-                !isCreateSpaceEnabled && topLevelSpaces.isEmpty ? .hidden : nil
-            }
-            .weakAssign(to: \.chatsTabDetails.barVisibilityOverride, on: self)
             .store(in: &cancellables)
     }
     

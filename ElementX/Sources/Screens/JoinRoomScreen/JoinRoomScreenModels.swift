@@ -6,11 +6,10 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Compound
 import SwiftUI
 
 enum JoinRoomScreenViewModelAction {
-    case joined(JoinRoomScreenJoinDetails)
+    case joined(roomID: String)
     case dismiss
     case presentDeclineAndBlock(userID: String)
 }
@@ -46,10 +45,6 @@ struct JoinRoomScreenRoomDetails {
     let heroes: [UserProfileProxy]
     let inviter: RoomInviterDetails?
     let isDirect: Bool?
-    
-    let isSpace: Bool?
-    let childrenCount: Int?
-    let spaceVisibility: SpaceServiceRoomVisibility?
 }
 
 struct JoinRoomScreenViewState: BindableState {
@@ -76,40 +71,16 @@ struct JoinRoomScreenViewState: BindableState {
     }
     
     var subtitle: String? {
-        if roomDetails?.isSpace == true, let spaceVisibilityTitle {
-            return spaceVisibilityTitle
-        } else {
-            switch mode {
-            case .invited(isDM: true):
-                if let inviter = roomDetails?.inviter {
-                    return inviter.displayName != nil ? inviter.id : nil
-                }
-                return nil
-            case .loading, .unknown, .knocked:
-                return nil
-            default:
-                return roomDetails?.canonicalAlias
+        switch mode {
+        case .invited(isDM: true):
+            if let inviter = roomDetails?.inviter {
+                return inviter.displayName != nil ? inviter.id : nil
             }
-        }
-    }
-    
-    var subtitleIcon: KeyPath<CompoundIcons, Image>? {
-        guard roomDetails?.isSpace == true else { return nil }
-        
-        return switch roomDetails?.spaceVisibility {
-        case .public: \.public
-        case .private: \.lock
-        case .restricted: \.space
-        case .none: \.lock
-        }
-    }
-    
-    var spaceVisibilityTitle: String? {
-        switch roomDetails?.spaceVisibility {
-        case .public: L10n.commonPublicSpace
-        case .private: L10n.commonPrivateSpace
-        case .restricted: L10n.commonSharedSpace
-        case .none: L10n.commonPrivateSpace
+            return nil
+        case .loading, .unknown, .knocked:
+            return nil
+        default:
+            return roomDetails?.canonicalAlias
         }
     }
     

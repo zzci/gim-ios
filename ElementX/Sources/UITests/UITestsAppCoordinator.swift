@@ -563,31 +563,18 @@ class MockScreen: Identifiable {
                                                                             appSettings: ServiceLocator.shared.settings,
                                                                             mediaProvider: MediaProviderMock(configuration: .init()))
             return SessionVerificationScreenCoordinator(parameters: parameters)
-        case .userSessionScreen, .userSessionScreenReply, .userSessionSpacesFlow:
+        case .userSessionScreen, .userSessionScreenReply:
             let appSettings: AppSettings = ServiceLocator.shared.settings
             appSettings.hasRunIdentityConfirmationOnboarding = true
             appSettings.hasRunNotificationPermissionsOnboarding = true
             appSettings.analyticsConsentState = .optedOut
-            appSettings.hasSeenSpacesAnnouncement = true
-            appSettings.spaceSettingsEnabled = true
-            
-            let roomSummaries: [RoomSummary] = if id == .userSessionSpacesFlow {
-                [[RoomSummary].mockSpaceInvites[0]] + .mockRooms
-            } else {
-                .mockRooms
-            }
+
             let clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",
                                                     deviceID: "MOCKCLIENT",
-                                                    roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(roomSummaries))),
-                                                    spaceServiceConfiguration: .init(topLevelSpaces: .mockSpaceList.filter(\.isSpace) + .mockSingleRoom),
-                                                    roomPreviews: [SpaceServiceRoom].mockSpaceList.map(RoomPreviewProxyMock.init),
+                                                    roomSummaryProvider: RoomSummaryProviderMock(.init(state: .loaded(.mockRooms))),
                                                     defaultRoomMembers: .allMembersAsAdmin))
             clientProxy.recentlyVisitedRoomsFilterReturnValue = .mockRooms
-            
-            // The tab bar remains hidden for the non-spaces tests as we don't supply any mock spaces.
-            let spaceServiceProxy = SpaceServiceProxyMock(id == .userSessionSpacesFlow ? .populated : .init())
-            clientProxy.spaceService = spaceServiceProxy
-            
+
             let appMediator = AppMediatorMock.default
             appMediator.underlyingWindowManager = windowManager
 

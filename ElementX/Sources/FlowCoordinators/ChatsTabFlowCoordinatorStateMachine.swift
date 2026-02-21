@@ -13,7 +13,6 @@ import SwiftState
 class ChatsTabFlowCoordinatorStateMachine {
     enum DetailState: Hashable {
         case room(roomID: String)
-        case space
     }
 
     /// States the AppCoordinator can find itself in
@@ -76,7 +75,6 @@ class ChatsTabFlowCoordinatorStateMachine {
     
     struct EventUserInfo {
         let animated: Bool
-        var spaceRoomListProxy: SpaceRoomListProxyProtocol?
     }
 
     /// Events that can be triggered on the AppCoordinator state machine
@@ -91,14 +89,7 @@ class ChatsTabFlowCoordinatorStateMachine {
         case selectRoom(roomID: String, via: [String], entryPoint: RoomFlowCoordinatorEntryPoint)
         /// The room screen has been dismissed
         case deselectRoom
-        
-        /// Request presentation of a space.
-        ///
-        /// The space's `RoomListProxyProtocol` must be provided in the `EventUserInfo`.
-        case startSpaceFlow
-        /// The space has been dismissed.
-        case finishedSpaceFlow
-        
+
         /// Request presentation of the feedback screen
         case feedbackScreen
         /// The feedback screen has been dismissed
@@ -160,15 +151,9 @@ class ChatsTabFlowCoordinatorStateMachine {
             switch (fromState, event) {
             case (.roomList, .selectRoom(let roomID, _, _)):
                 return .roomList(detailState: .room(roomID: roomID))
-            case (.roomList(let detailState), .deselectRoom):
-                // Ignore the flow's dismissal if it has already been replaced with a space.
-                return detailState == .space ? nil : .roomList(detailState: nil)
-                                
-            case (.roomList, .startSpaceFlow):
-                return .roomList(detailState: .space)
-            case (.roomList, .finishedSpaceFlow):
+            case (.roomList, .deselectRoom):
                 return .roomList(detailState: nil)
-                
+
             case (.roomList(let detailState), .feedbackScreen):
                 return .feedbackScreen(detailState: detailState)
             case (.feedbackScreen(let detailState), .dismissedFeedbackScreen):

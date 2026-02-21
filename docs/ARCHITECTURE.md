@@ -30,7 +30,7 @@
 
 ## 1. Project Overview
 
-GIM is a Matrix messaging client forked from Element X iOS, rebranded for the `g.im` domain. It provides end-to-end encrypted messaging, voice/video calls, spaces, and full Matrix protocol support via the Matrix Rust SDK.
+GIM is a Matrix messaging client forked from Element X iOS, rebranded for the `g.im` domain. It provides end-to-end encrypted messaging, voice/video calls, and full Matrix protocol support via the Matrix Rust SDK.
 
 ### 1.1 Targets
 
@@ -60,7 +60,7 @@ element-x-ios/
 │       │       └── OIDCConfiguration.swift
 │       ├── FlowCoordinators/     # 22 flow coordinators
 │       ├── Screens/              # 56+ screens (MVVM pattern)
-│       ├── Services/             # 27 service modules
+│       ├── Services/             # 26 service modules
 │       ├── Generated/            # SwiftGen/Sourcery output
 │       ├── Mocks/                # Generated mocks
 │       ├── Other/                # Utilities, extensions, base classes
@@ -165,7 +165,7 @@ AppCoordinator uses SwiftState to manage the app lifecycle:
 `AppSettings.swift` provides 40+ configurable settings:
 
 - User preferences (themes, notifications, timeline)
-- Feature flags (threads, spaces, public search, key sharing)
+- Feature flags (threads, public search, key sharing)
 - Infrastructure config (push gateway, analytics, Sentry)
 - OIDC configuration (redirect URL, client URI)
 - Backed by `UserDefaults`, published for SwiftUI reactivity
@@ -198,9 +198,6 @@ AppCoordinator (root)
     │   │   │   └── PinnedEventsTimelineFlowCoordinator
     │   │   ├── StartChatFlowCoordinator
     │   │   └── GlobalSearchScreen
-    │   └── SpacesTabFlowCoordinator (Spaces tab)
-    │       ├── SpaceFlowCoordinator
-    │       └── SpaceSettingsFlowCoordinator
     ├── SettingsFlowCoordinator
     │   ├── SettingsScreen
     │   ├── LabsScreen
@@ -253,7 +250,7 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 
 ### 5.1 Service Categories
 
-27 service modules, all **protocol-based** for testability:
+26 service modules, all **protocol-based** for testability:
 
 #### Core Services
 | Service | Purpose | Rust SDK Wrapper? |
@@ -288,7 +285,6 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 | **Notification** | Push notification handling | Yes |
 | **NotificationSettings** | Per-room notification config | Yes |
 | **Polls** | Poll creation and voting | Yes |
-| **Spaces** | Space hierarchy and filtering | Yes |
 | **Emojis** | Emoji search and categories | No |
 | **ComposerDraft** | Message draft persistence | Yes |
 
@@ -326,7 +322,6 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 | **Members** | RoomMemberList, RoomMemberDetails, ManageRoomMemberSheet, InviteUsers |
 | **Messages** | MessageForwarding, ReportContent, ReportRoom, DeclineAndBlock, ResolveVerifiedUserSendFailure |
 | **Media** | MediaPicker, MediaUploadPreview, FilePreview, LocationSharing |
-| **Spaces** | ChatsSpaceFilters, ManageAuthorizedSpaces |
 | **Settings** | Settings, Labs, LinkNewDevice, LogViewer |
 | **Security** | SecureBackup (RecoveryKey, KeyBackup), EncryptionReset, QRCodeLogin |
 | **App Lock** | AppLockScreen, AppLockSetup |

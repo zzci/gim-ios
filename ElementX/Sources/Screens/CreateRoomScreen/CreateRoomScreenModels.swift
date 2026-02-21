@@ -18,21 +18,18 @@ enum CreateRoomScreenErrorType: Error {
 }
 
 enum CreateRoomScreenViewModelAction {
-    case createdRoom(JoinedRoomProxyProtocol, SpaceRoomListProxyProtocol?)
+    case createdRoom(JoinedRoomProxyProtocol)
     case displayMediaPicker
     case displayCameraPicker
     case dismiss
 }
 
 struct CreateRoomScreenViewState: BindableState {
-    let isSpace: Bool
     let shouldShowCancelButton: Bool
     var roomName: String
     let serverName: String
     let isKnockingFeatureEnabled: Bool
-    let canSelectSpace: Bool
     var aliasLocalPart: String
-    var editableSpaces: [SpaceServiceRoom] = []
     var bindings: CreateRoomScreenViewStateBindings
     var avatarMediaInfo: MediaInfo? {
         didSet {
@@ -63,32 +60,18 @@ struct CreateRoomScreenViewState: BindableState {
     }
         
     var availableAccessTypes: [CreateRoomScreenAccessType] {
-        var availableAccessTypes: [CreateRoomScreenAccessType] = []
-        if isSpace {
-            availableAccessTypes = [.public]
-        } else if let selectedSpace = bindings.selectedSpace, selectedSpace.joinRule != .public {
-            availableAccessTypes = [.spaceMembers]
-            if isKnockingFeatureEnabled {
-                availableAccessTypes.append(.askToJoinWithSpaceMembers)
-            }
-        } else {
-            availableAccessTypes = [.public]
-            if isKnockingFeatureEnabled {
-                availableAccessTypes.append(.askToJoin)
-            }
+        var availableAccessTypes: [CreateRoomScreenAccessType] = [.public]
+        if isKnockingFeatureEnabled {
+            availableAccessTypes.append(.askToJoin)
         }
         availableAccessTypes.append(.private)
         return availableAccessTypes
     }
-    
+
     var roomAccessType: CreateRoomAccessType {
         switch bindings.selectedAccessType {
         case .public:
             return .public
-        case .spaceMembers:
-            return .spaceMembers(spaceID: bindings.selectedSpace?.id ?? "")
-        case .askToJoinWithSpaceMembers:
-            return .askToJoinWithSpaceMembers(spaceID: bindings.selectedSpace?.id ?? "")
         case .askToJoin:
             return .askToJoin
         case .private:
@@ -100,11 +83,9 @@ struct CreateRoomScreenViewState: BindableState {
 struct CreateRoomScreenViewStateBindings {
     var roomTopic: String
     var selectedAccessType: CreateRoomScreenAccessType
-    var selectedSpace: SpaceServiceRoom?
-    
+
     var showAttachmentConfirmationDialog = false
-    var showSpaceSelectionSheet = false
-    
+
     /// Information describing the currently displayed alert.
     var alertInfo: AlertInfo<CreateRoomScreenErrorType>?
 }
@@ -137,13 +118,6 @@ extension Set<CreateRoomScreenAliasErrorState> {
 
 enum CreateRoomScreenAccessType {
     case `public`
-    case spaceMembers
-    case askToJoinWithSpaceMembers
     case askToJoin
     case `private`
-}
-
-enum CreateRoomScreenSpaceSelectionMode {
-    case editableSpacesList(preSelectedSpace: SpaceServiceRoom?)
-    case none
 }

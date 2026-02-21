@@ -80,7 +80,6 @@ extension RoomFlowCoordinator {
         case knockRequestsList(previousState: State)
         case mediaEventsTimeline(previousState: State)
         case securityAndPrivacy(previousState: State)
-        case manageAuthorizedSpacesScreen(previousState: State)
         case reportRoom(previousState: State)
         case declineAndBlockScreen
         case transferOwnershipScreen(previousState: State)
@@ -90,8 +89,6 @@ extension RoomFlowCoordinator {
         /// The flow is complete and is handing control of the stack back to its parent.
         case complete
         
-        /// A space flow is in progress
-        case spaceFlow(previousState: State)
         /// A members flow is in progress
         case membersFlow(previousState: State)
     }
@@ -99,23 +96,17 @@ extension RoomFlowCoordinator {
     struct EventUserInfo {
         let animated: Bool
         var timelineController: TimelineControllerProtocol?
-        var spaceRoomListProxy: SpaceRoomListProxyProtocol?
-        var authorizedSpacesSelection: AuthorizedSpacesSelection?
     }
 
     enum Event: EventType {
         case presentJoinRoomScreen(via: [String])
         case dismissJoinRoomScreen
-        case joinedSpace
-        
+
         case presentRoom(presentationAction: PresentationAction?)
         case dismissFlow
-        
+
         case presentThread(threadRootEventID: String, focusEventID: String?)
         case dismissThread
-        
-        case startSpaceFlow
-        case finishedSpaceFlow
         
         case presentReportContent(itemID: TimelineItemIdentifier, senderID: String)
         case dismissReportContent
@@ -176,9 +167,6 @@ extension RoomFlowCoordinator {
         
         case presentSecurityAndPrivacyScreen
         case dismissSecurityAndPrivacyScreen
-        
-        case presentManageAuthorizedSpacesScreen
-        case dismissedManageAuthorizedSpacesScreen
         
         case presentReportRoomScreen
         case dismissReportRoomScreen
@@ -330,11 +318,6 @@ extension RoomFlowCoordinator {
             case (.securityAndPrivacy(let previousState), .dismissSecurityAndPrivacyScreen):
                 return previousState
                 
-            case (.securityAndPrivacy, .presentManageAuthorizedSpacesScreen):
-                return .manageAuthorizedSpacesScreen(previousState: fromState)
-            case (.manageAuthorizedSpacesScreen(let previousState), .dismissedManageAuthorizedSpacesScreen):
-                return previousState
-                
             case (.roomDetails, .presentReportRoomScreen):
                 return .reportRoom(previousState: fromState)
             case (.reportRoom(let previousState), .dismissReportRoomScreen):
@@ -345,8 +328,6 @@ extension RoomFlowCoordinator {
             case (_, .presentJoinRoomScreen):
                 return .joinRoomScreen
             case (_, .dismissJoinRoomScreen):
-                return .complete
-            case (_, .joinedSpace):
                 return .complete
                 
             case (.joinRoomScreen, .presentDeclineAndBlockScreen):
@@ -365,12 +346,7 @@ extension RoomFlowCoordinator {
                 return .presentingChild(childRoomID: roomID, previousState: fromState)
             case (.presentingChild(_, let previousState), .dismissChildFlow):
                 return previousState
-                
-            case (.presentingChild(_, let previousState), .startSpaceFlow):
-                return .spaceFlow(previousState: previousState)
-            case (.spaceFlow(let previousState), .finishedSpaceFlow):
-                return previousState
-                
+
             case (_, .presentKnockRequestsListScreen):
                 return .knockRequestsList(previousState: fromState)
             case (.knockRequestsList(let previousState), .dismissKnockRequestsListScreen):

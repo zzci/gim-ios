@@ -27,9 +27,7 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
         actionsSubject.eraseToAnyPublisher()
     }
     
-    init(isSpace: Bool,
-         spaceSelectionMode: CreateRoomScreenSpaceSelectionMode,
-         shouldShowCancelButton: Bool,
+    init(shouldShowCancelButton: Bool,
          userSession: UserSessionProtocol,
          analytics: AnalyticsService,
          userIndicatorController: UserIndicatorControllerProtocol,
@@ -38,44 +36,19 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
         mediaUploadingPreprocessor = MediaUploadingPreprocessor(appSettings: appSettings)
         self.analytics = analytics
         self.userIndicatorController = userIndicatorController
-        
-        var selectedSpace: SpaceServiceRoom?
-        let canSelectSpace: Bool
-        var selectedAccessType = CreateRoomScreenAccessType.private
-        switch spaceSelectionMode {
-        case .editableSpacesList(let preSelectedSpace):
-            canSelectSpace = true
-            if let preSelectedSpace {
-                selectedSpace = preSelectedSpace
-                if preSelectedSpace.joinRule != .public {
-                    selectedAccessType = .spaceMembers
-                }
-            }
-        case .none:
-            canSelectSpace = false
-        }
-        
-        let bindings = CreateRoomScreenViewStateBindings(roomTopic: "",
-                                                         selectedAccessType: selectedAccessType,
-                                                         selectedSpace: selectedSpace)
 
-        super.init(initialViewState: CreateRoomScreenViewState(isSpace: isSpace,
-                                                               shouldShowCancelButton: shouldShowCancelButton,
+        let bindings = CreateRoomScreenViewStateBindings(roomTopic: "",
+                                                         selectedAccessType: .private)
+
+        super.init(initialViewState: CreateRoomScreenViewState(shouldShowCancelButton: shouldShowCancelButton,
                                                                roomName: "",
                                                                serverName: userSession.clientProxy.userIDServerName ?? "",
                                                                isKnockingFeatureEnabled: appSettings.knockingEnabled,
-                                                               canSelectSpace: canSelectSpace,
                                                                aliasLocalPart: roomAliasNameFromRoomDisplayName(roomName: ""),
                                                                bindings: bindings),
                    mediaProvider: userSession.mediaProvider)
-        
+
         setupBindings()
-        
-        if canSelectSpace {
-            Task {
-                state.editableSpaces = await userSession.clientProxy.spaceService.editableSpaces()
-            }
-        }
     }
     
     // MARK: - Public
@@ -263,7 +236,7 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
         switch await userSession.clientProxy.createRoom(name: state.roomName,
                                                         topic: state.bindings.roomTopic.isBlank ? nil : state.bindings.roomTopic,
                                                         accessType: state.roomAccessType,
-                                                        isSpace: state.isSpace,
+                                                        isSpace: false,
                                                         userIDs: [], // The invite users screen is shown next so we don't need to invite anyone right now.
                                                         avatarURL: avatarURL,
                                                         aliasLocalPart: state.roomAccessType.isVisibilityPrivate ? nil : state.aliasLocalPart) {
@@ -275,46 +248,12 @@ class CreateRoomScreenViewModel: CreateRoomScreenViewModelType, CreateRoomScreen
                 return
             }
             analytics.trackCreatedRoom(isDM: false)
-            
-            var spaceRoomListProxy: SpaceRoomListProxyProtocol?
-            if state.isSpace {
-                switch await userSession.clientProxy.spaceService.spaceRoomList(spaceID: roomID) {
-                case .success(let value):
-                    spaceRoomListProxy = value
-                case .failure:
-                    MXLog.error("Failed to get space room list for newly created space with id: \(roomID)")
-                    userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
-                }
-            }
-            
-            if let spaceID = state.bindings.selectedSpace?.id {
-                await addRoomToSpace(roomProxy: roomProxy, spaceID: spaceID)
-            }
-            
-            actionsSubject.send(.createdRoom(roomProxy, spaceRoomListProxy))
+
+            actionsSubject.send(.createdRoom(roomProxy))
         case .failure:
             state.bindings.alertInfo = AlertInfo(id: .failedCreatingRoom,
                                                  title: L10n.commonError,
                                                  message: L10n.screenStartChatErrorStartingChat)
-        }
-    }
-    
-    private func addRoomToSpace(roomProxy: JoinedRoomProxyProtocol, spaceID: String) async {
-        roomProxy.subscribeToRoomInfoUpdates()
-        let runner = ExpiringTaskRunner {
-            // Necessary to build the room cache so that the space can be added as a parent.
-            _ = await roomProxy.infoPublisher.values.first { $0.powerLevels != nil }
-        }
-        
-        do {
-            try await runner.run(timeout: .seconds(30))
-            if case .failure = await userSession.clientProxy.spaceService.addChild(roomProxy.id, to: spaceID) {
-                MXLog.error("Failed to add the created room with id: \(roomProxy.id) to the space with id: \(spaceID)")
-                userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
-            }
-        } catch {
-            MXLog.error("Timed out waiting for power levels to load for room with id: \(roomProxy.id)")
-            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
         }
     }
     

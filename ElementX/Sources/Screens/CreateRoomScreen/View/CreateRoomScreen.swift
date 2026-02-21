@@ -39,9 +39,6 @@ struct CreateRoomScreen: View {
         Form {
             roomSection
             topicSection
-            if context.viewState.canSelectSpace {
-                selectSpaceSection
-            }
             roomAccessSection
             if !context.viewState.roomAccessType.isVisibilityPrivate {
                 roomAliasSection
@@ -50,14 +47,11 @@ struct CreateRoomScreen: View {
         .compoundList()
         .track(screen: .CreateRoom)
         .scrollDismissesKeyboard(.immediately)
-        .navigationTitle(context.viewState.isSpace ? L10n.screenCreateRoomNewSpaceTitle : L10n.screenCreateRoomNewRoomTitle)
+        .navigationTitle(L10n.screenCreateRoomNewRoomTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
         .alert(item: $context.alertInfo)
         .shouldScrollOnKeyboardDidShow(focus == .alias, to: Focus.alias)
-        .sheet(isPresented: $context.showSpaceSelectionSheet) {
-            CreateRoomSpaceSelectionSheet(context: context)
-        }
     }
     
     private var nameTextFieldShape: AnyShape {
@@ -114,7 +108,7 @@ struct CreateRoomScreen: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .scaledFrame(size: 70, relativeTo: .title)
-                    .clipShape(context.viewState.isSpace ? AnyShape(RoundedRectangle(cornerRadius: 16)) : AnyShape(Circle()))
+                    .clipShape(Circle())
                     .overlay(alignment: .bottomTrailing) {
                         editAvatarBadge
                             .scaledOffset(x: 12, y: 4, relativeTo: .title)
@@ -187,7 +181,6 @@ struct CreateRoomScreen: View {
         Section {
             ForEach(context.viewState.availableAccessTypes, id: \.self) { accessType in
                 CreateRoomAccessRow(access: accessType,
-                                    spaceName: context.selectedSpace?.name ?? "",
                                     isSelected: context.selectedAccessType == accessType) {
                     context.selectedAccessType = accessType
                 }
@@ -222,29 +215,6 @@ struct CreateRoomScreen: View {
         }
     }
     
-    private var selectSpaceSection: some View {
-        Section {
-            if let selectedSpace = context.selectedSpace {
-                ListRow(label: .avatar(title: selectedSpace.name,
-                                       description: selectedSpace.canonicalAlias,
-                                       icon: RoomAvatarImage(avatar: selectedSpace.avatar,
-                                                             avatarSize: .room(on: .createRoomSelectSpace),
-                                                             mediaProvider: context.mediaProvider)),
-                        kind: .navigationLink {
-                            context.showSpaceSelectionSheet = true
-                        })
-            } else {
-                ListRow(label: .plain(title: L10n.screenCreateRoomSpaceSelectionNoSpaceTitle),
-                        kind: .navigationLink {
-                            context.showSpaceSelectionSheet = true
-                        })
-            }
-        } header: {
-            Text(L10n.commonSpace)
-                .compoundListSectionHeader()
-        }
-    }
-    
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         if context.viewState.shouldShowCancelButton {
@@ -269,10 +239,9 @@ struct CreateRoomScreen: View {
 
 private struct CreateRoomAccessRow: View {
     let access: CreateRoomScreenAccessType
-    let spaceName: String
     let isSelected: Bool
     let onSelection: () -> Void
-    
+
     var title: String {
         switch access {
         case .public:
@@ -281,13 +250,9 @@ private struct CreateRoomAccessRow: View {
             L10n.screenCreateRoomRoomAccessSectionKnockingOptionTitle
         case .private:
             L10n.screenCreateRoomRoomAccessSectionPrivateOptionTitle
-        case .spaceMembers:
-            L10n.screenCreateRoomRoomAccessSectionRestrictedOptionTitle
-        case .askToJoinWithSpaceMembers:
-            L10n.screenCreateRoomRoomAccessSectionKnockingRestrictedOptionTitle
         }
     }
-    
+
     var description: String {
         switch access {
         case .public:
@@ -296,13 +261,9 @@ private struct CreateRoomAccessRow: View {
             L10n.screenCreateRoomRoomAccessSectionKnockingOptionDescription
         case .private:
             L10n.screenCreateRoomRoomAccessSectionPrivateOptionDescription
-        case .spaceMembers:
-            L10n.screenCreateRoomRoomAccessSectionRestrictedOptionDescription(spaceName)
-        case .askToJoinWithSpaceMembers:
-            L10n.screenCreateRoomRoomAccessSectionKnockingRestrictedOptionDescription(spaceName)
         }
     }
-    
+
     var icon: KeyPath<CompoundIcons, Image> {
         switch access {
         case .public:
@@ -311,10 +272,6 @@ private struct CreateRoomAccessRow: View {
             \.userAdd
         case .private:
             \.lock
-        case .spaceMembers:
-            \.space
-        case .askToJoinWithSpaceMembers:
-            \.userAdd
         }
     }
     
@@ -331,65 +288,36 @@ private struct CreateRoomAccessRow: View {
 
 struct CreateRoom_Previews: PreviewProvider, TestablePreview {
     static let viewModel = makeViewModel()
-    
+
     static let avatarViewModel = {
         let viewModel = makeViewModel()
         viewModel.updateAvatar(fileURL: Bundle.main.url(forResource: "preview_avatar_room", withExtension: "jpg") ?? .picturesDirectory)
         return viewModel
     }()
-    
-    static let spaceViewModel = makeViewModel(isSpace: true, selectionMode: .none)
-    
-    static let spaceWithAvatarViewModel = {
-        let viewModel = makeViewModel(isSpace: true, selectionMode: .none)
-        viewModel.updateAvatar(fileURL: Bundle.main.url(forResource: "preview_avatar_room", withExtension: "jpg") ?? .picturesDirectory)
-        return viewModel
-    }()
-    
+
     static let publicRoomViewModel = {
         let viewModel = makeViewModel()
         viewModel.context.selectedAccessType = .public
         return viewModel
     }()
-    
+
     static let askToJoinViewModel = {
         let viewModel = makeViewModel(isKnockingEnabled: true)
         viewModel.context.selectedAccessType = .askToJoin
         return viewModel
     }()
-    
+
     static let publicRoomInvalidAliasViewModel = {
         let viewModel = makeViewModel()
         viewModel.context.selectedAccessType = .public
         viewModel.context.send(viewAction: .updateAliasLocalPart("#:"))
         return viewModel
     }()
-    
+
     static let publicRoomExistingAliasViewModel = {
         let viewModel = makeViewModel(isAliasAvailable: false)
         viewModel.context.selectedAccessType = .public
         viewModel.context.send(viewAction: .updateAliasLocalPart("existing"))
-        return viewModel
-    }()
-    
-    static let selectedSpaceViewModel = makeViewModel(selectionMode: .editableSpacesList(preSelectedSpace: SpaceServiceRoom.mock(id: "awesome-space-id",
-                                                                                                                                 name: "Awesome Space",
-                                                                                                                                 isSpace: true,
-                                                                                                                                 joinRule: .invite)))
-    
-    static let selectedSpaceWithListViewModel = {
-        let viewModel = makeViewModel()
-        viewModel.context.selectedSpace = [SpaceServiceRoom].mockJoinedSpaces2.first
-        return viewModel
-    }()
-    
-    static let selectedSpaceWithAskToJoinViewModel = {
-        let viewModel = makeViewModel(isKnockingEnabled: true,
-                                      selectionMode: .editableSpacesList(preSelectedSpace: SpaceServiceRoom.mock(id: "awesome-space-id",
-                                                                                                                 name: "Awesome Space",
-                                                                                                                 isSpace: true,
-                                                                                                                 joinRule: .invite)))
-        viewModel.context.selectedAccessType = .askToJoinWithSpaceMembers
         return viewModel
     }()
 
@@ -398,80 +326,48 @@ struct CreateRoom_Previews: PreviewProvider, TestablePreview {
             CreateRoomScreen(context: viewModel.context)
         }
         .previewDisplayName("Create Room")
-        
+
         ElementNavigationStack {
             CreateRoomScreen(context: avatarViewModel.context)
         }
         .previewDisplayName("Create Room with avatar")
         .snapshotPreferences(expect: avatarViewModel.context.$viewState.map { $0.avatarImage != nil })
-        
-        ElementNavigationStack {
-            CreateRoomScreen(context: spaceViewModel.context)
-        }
-        .previewDisplayName("Create Space")
-        
-        ElementNavigationStack {
-            CreateRoomScreen(context: spaceWithAvatarViewModel.context)
-        }
-        .previewDisplayName("Create Space with avatar")
-        .snapshotPreferences(expect: spaceWithAvatarViewModel.context.$viewState.map { $0.avatarImage != nil })
-        
+
         ElementNavigationStack {
             CreateRoomScreen(context: publicRoomViewModel.context)
         }
         .previewDisplayName("Create Public Room")
-        
+
         ElementNavigationStack {
             CreateRoomScreen(context: askToJoinViewModel.context)
         }
         .previewDisplayName("Create Knockable Room")
-        
+
         ElementNavigationStack {
             CreateRoomScreen(context: publicRoomInvalidAliasViewModel.context)
         }
         .snapshotPreferences(expect: publicRoomInvalidAliasViewModel.context.$viewState.map { !$0.aliasErrors.isEmpty })
         .previewDisplayName("Create Public Room, invalid alias")
-        
+
         ElementNavigationStack {
             CreateRoomScreen(context: publicRoomExistingAliasViewModel.context)
         }
         .snapshotPreferences(expect: publicRoomExistingAliasViewModel.context.$viewState.map { !$0.aliasErrors.isEmpty })
         .previewDisplayName("Create Public Room, existing alias")
-        
-        ElementNavigationStack {
-            CreateRoomScreen(context: selectedSpaceViewModel.context)
-        }
-        .previewDisplayName("Create Room with already selected Space")
-        
-        ElementNavigationStack {
-            CreateRoomScreen(context: selectedSpaceWithListViewModel.context)
-        }
-        .previewDisplayName("Create Room with a selected Space from the list")
-        
-        ElementNavigationStack {
-            CreateRoomScreen(context: selectedSpaceWithAskToJoinViewModel.context)
-        }
-        .previewDisplayName("Create Knockable Room with already selected Space")
     }
     
     private static func makeViewModel(isKnockingEnabled: Bool = false,
-                                      isSpace: Bool = false,
-                                      selectionMode: CreateRoomScreenSpaceSelectionMode = .editableSpacesList(preSelectedSpace: nil),
                                       isAliasAvailable: Bool = true) -> CreateRoomScreenViewModel {
         AppSettings.resetAllSettings()
         let appSettings = AppSettings()
         appSettings.knockingEnabled = isKnockingEnabled
-        
+
         let clientProxy = ClientProxyMock(.init(userIDServerName: "example.org",
                                                 userID: "@userid:example.com"))
         clientProxy.isAliasAvailableReturnValue = .success(isAliasAvailable)
-        let spaces = [SpaceServiceRoom].mockJoinedSpaces2
-        clientProxy.spaceService = SpaceServiceProxyMock(.init(editableSpaces: spaces))
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
-        
-        return CreateRoomScreenViewModel(isSpace: isSpace,
-                                         spaceSelectionMode: selectionMode,
-                                         shouldShowCancelButton: isSpace,
+
+        return CreateRoomScreenViewModel(shouldShowCancelButton: false,
                                          userSession: userSession,
                                          analytics: ServiceLocator.shared.analytics,
                                          userIndicatorController: UserIndicatorControllerMock(),

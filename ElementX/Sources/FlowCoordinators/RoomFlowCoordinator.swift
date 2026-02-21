@@ -13,19 +13,7 @@ import UserNotifications
 
 enum RoomFlowCoordinatorAction: Equatable {
     case verifyUser(userID: String)
-    /// The requested room was actually a space. The room flow has been dismissed
-    /// and a space flow should be started to continue.
-    case continueWithSpaceFlow(SpaceRoomListProxyProtocol)
     case finished
-
-    static func == (lhs: RoomFlowCoordinatorAction, rhs: RoomFlowCoordinatorAction) -> Bool {
-        switch (lhs, rhs) {
-        case (.finished, .finished):
-            true
-        default:
-            false
-        }
-    }
 }
 
 /// A value that represents where the room flow will be started.
@@ -82,8 +70,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
     private var mediaEventsTimelineFlowCoordinator: MediaEventsTimelineFlowCoordinator?
     // periphery:ignore - used to avoid deallocation
     private var childRoomFlowCoordinator: RoomFlowCoordinator?
-    // periphery:ignore - retaining purpose
-    private var spaceFlowCoordinator: SpaceFlowCoordinator?
     // periphery:ignore - retaining purpose
     private var membersFlowCoordinator: RoomMembersFlowCoordinator?
     
@@ -289,13 +275,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         switch room {
         case .joined(let roomProxy):
             if roomProxy.infoPublisher.value.isSpace {
-                switch await userSession.clientProxy.spaceService.spaceRoomList(spaceID: roomProxy.id) {
-                case .success(let spaceRoomListProxy):
-                    actionsSubject.send(.continueWithSpaceFlow(spaceRoomListProxy))
-                case .failure:
-                    showErrorIndicator()
-                    stateMachine.tryEvent(.dismissFlow)
-                }
+                stateMachine.tryEvent(.dismissFlow)
             } else {
                 await storeAndSubscribeToRoomProxy(roomProxy)
                 
@@ -397,15 +377,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 Task { await self.presentThread(threadRootEventID: threadRootEventID, focusEventID: focusEventID, animated: animated) }
                 
             // Thread + Room
-                
-            case (_, .startSpaceFlow, .spaceFlow):
-                guard let spaceRoomListProxy = (context.userInfo as? EventUserInfo)?.spaceRoomListProxy else {
-                    fatalError("The space room list proxy is required to present a space.")
-                }
-                startSpaceFlow(spaceRoomListProxy: spaceRoomListProxy, animated: animated)
-            case (.spaceFlow, .finishedSpaceFlow, _):
-                spaceFlowCoordinator = nil
-                
+
             case (_, .presentReportContent, .reportContent(let itemID, let senderID, _)):
                 presentReportContent(for: itemID, from: senderID)
                 
@@ -471,13 +443,7 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 
             case (.roomDetails, .presentSecurityAndPrivacyScreen, .securityAndPrivacy):
                 presentSecurityAndPrivacyScreen()
-                
-            case (.securityAndPrivacy, .presentManageAuthorizedSpacesScreen, .manageAuthorizedSpacesScreen):
-                guard let selection = (context.userInfo as? EventUserInfo)?.authorizedSpacesSelection else {
-                    fatalError("Missing required AuthorizedSpacesSelection")
-                }
-                presentManageAuthorizedSpacesScreen(selection: selection)
-                
+
             case (.roomDetails, .presentReportRoomScreen, .reportRoom):
                 presentReportRoom()
                 
@@ -487,11 +453,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 presentJoinRoomScreen(via: via, animated: true)
             case (_, .dismissJoinRoomScreen, .complete):
                 dismissFlow(animated: animated)
-            case (_, .joinedSpace, .complete):
-                guard let spaceRoomListProxy = (context.userInfo as? EventUserInfo)?.spaceRoomListProxy else {
-                    fatalError("The space room list proxy is required to present a space.")
-                }
-                dismissFlow(animated: animated, continuingWith: spaceRoomListProxy)
                 
             case (.joinRoomScreen, .presentDeclineAndBlockScreen(let userID), .declineAndBlockScreen):
                 presentDeclineAndBlockScreen(userID: userID)
@@ -823,10 +784,10 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 guard let self else { return }
                 
                 switch action {
-                case .joined(.roomID(let roomID)):
+                case .joined(let roomID):
                     Task { [weak self] in
                         guard let self else { return }
-                        
+
                         if case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) {
                             await storeAndSubscribeToRoomProxy(roomProxy)
                             stateMachine.tryEvent(.presentRoom(presentationAction: nil), userInfo: EventUserInfo(animated: animated))
@@ -838,8 +799,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                             stateMachine.tryEvent(.dismissFlow, userInfo: EventUserInfo(animated: animated))
                         }
                     }
-                case .joined(.space(let spaceRoomListProxy)):
-                    stateMachine.tryEvent(.joinedSpace, userInfo: EventUserInfo(animated: true, spaceRoomListProxy: spaceRoomListProxy))
                 case .cancelled:
                     stateMachine.tryEvent(.dismissJoinRoomScreen)
                 case .presentDeclineAndBlock(let userID):
@@ -863,33 +822,23 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
-    private func dismissFlow(animated: Bool, continuingWith spaceRoomListProxy: SpaceRoomListProxyProtocol? = nil) {
+    private func dismissFlow(animated: Bool) {
         childRoomFlowCoordinator?.clearRoute(animated: animated)
-        
+
         if isChildFlow {
             // We don't support dismissing a child flow by itself, only the entire chain.
             MXLog.info("Leaving the rest of the navigation clean-up to the parent flow.")
-            
+
             if joinRoomScreenCoordinator != nil {
                 navigationStackCoordinator.pop()
             }
         } else {
             navigationStackCoordinator.popToRoot(animated: false)
-            
-            // Leave the root alone when it is about to be replaced by the space flow, otherwise when running on
-            // iPhone the compact module diffs call the dismissal callback and we present a blank space flow 🙈
-            if spaceRoomListProxy == nil {
-                navigationStackCoordinator.setRootCoordinator(nil, animated: false)
-            }
+            navigationStackCoordinator.setRootCoordinator(nil, animated: false)
         }
-        
+
         timelineController = nil
-        
-        if let spaceRoomListProxy {
-            actionsSubject.send(.continueWithSpaceFlow(spaceRoomListProxy))
-        } else {
-            actionsSubject.send(.finished)
-        }
+        actionsSubject.send(.finished)
     }
     
     private func presentRoomDetails(isRoot: Bool, animated: Bool) async {
@@ -1360,33 +1309,12 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
                 presentEditAddressScreen()
             case .dismiss:
                 navigationStackCoordinator.pop()
-            case .displayManageAuthorizedSpacesScreen(let selection):
-                stateMachine.tryEvent(.presentManageAuthorizedSpacesScreen, userInfo: EventUserInfo(animated: true, authorizedSpacesSelection: selection))
             }
         }
         .store(in: &cancellables)
         
         navigationStackCoordinator.push(coordinator) { [weak self] in
             self?.stateMachine.tryEvent(.dismissSecurityAndPrivacyScreen)
-        }
-    }
-    
-    private func presentManageAuthorizedSpacesScreen(selection: AuthorizedSpacesSelection) {
-        let navigationStack = NavigationStackCoordinator()
-        let coordinator = ManageAuthorizedSpacesScreenCoordinator(parameters: .init(authorizedSpacesSelection: selection,
-                                                                                    mediaProvider: flowParameters.userSession.mediaProvider))
-        coordinator.actionsPublisher.sink { [weak self] action in
-            guard let self else { return }
-            switch action {
-            case .dismiss:
-                navigationStackCoordinator.setSheetCoordinator(nil)
-            }
-        }
-        .store(in: &cancellables)
-        
-        navigationStack.setRootCoordinator(coordinator)
-        navigationStackCoordinator.setSheetCoordinator(navigationStack) { [weak self] in
-            self?.stateMachine.tryEvent(.dismissedManageAuthorizedSpacesScreen)
         }
     }
     
@@ -1468,8 +1396,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .verifyUser(let userID):
                 actionsSubject.send(.verifyUser(userID: userID))
-            case .continueWithSpaceFlow(let spaceRoomListProxy):
-                stateMachine.tryEvent(.startSpaceFlow, userInfo: EventUserInfo(animated: true, spaceRoomListProxy: spaceRoomListProxy))
             case .finished:
                 stateMachine.tryEvent(.dismissChildFlow)
             }
@@ -1562,29 +1488,6 @@ class RoomFlowCoordinator: FlowCoordinatorProtocol {
         mediaEventsTimelineFlowCoordinator = flowCoordinator
         
         flowCoordinator.start()
-    }
-    
-    private func startSpaceFlow(spaceRoomListProxy: SpaceRoomListProxyProtocol, animated: Bool) {
-        let coordinator = SpaceFlowCoordinator(entryPoint: .space(spaceRoomListProxy),
-                                               spaceServiceProxy: userSession.clientProxy.spaceService,
-                                               isChildFlow: true,
-                                               navigationStackCoordinator: navigationStackCoordinator,
-                                               flowParameters: flowParameters)
-        coordinator.actionsPublisher
-            .sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .verifyUser(let userID):
-                    actionsSubject.send(.verifyUser(userID: userID))
-                case .finished:
-                    stateMachine.tryEvent(.finishedSpaceFlow)
-                }
-            }
-            .store(in: &cancellables)
-        
-        spaceFlowCoordinator = coordinator
-        
-        coordinator.start(animated: animated)
     }
     
     private func startMembersFlow(entryPoint: RoomMembersFlowCoordinatorEntryPoint, animated: Bool) {

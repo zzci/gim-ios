@@ -18,25 +18,17 @@ struct JoinRoomScreenCoordinatorParameters {
 
 enum JoinRoomScreenSource {
     case generic(roomID: String, via: [String])
-    case space(SpaceServiceRoom)
-    
+
     func roomIDAndVia() -> (roomID: String, via: [String]) {
         switch self {
         case let .generic(roomID: roomID, via: via):
             return (roomID: roomID, via: via)
-        case let .space(spaceServiceRoom):
-            return (roomID: spaceServiceRoom.id, via: spaceServiceRoom.via)
         }
     }
 }
 
-enum JoinRoomScreenJoinDetails {
-    case roomID(String)
-    case space(SpaceRoomListProxyProtocol)
-}
-
 enum JoinRoomScreenCoordinatorAction {
-    case joined(JoinRoomScreenJoinDetails)
+    case joined(roomID: String)
     case cancelled
     case presentDeclineAndBlock(userID: String)
 }
@@ -64,8 +56,8 @@ final class JoinRoomScreenCoordinator: CoordinatorProtocol {
             
             guard let self else { return }
             switch action {
-            case .joined(let details):
-                actionsSubject.send(.joined(details))
+            case .joined(let roomID):
+                actionsSubject.send(.joined(roomID: roomID))
             case .dismiss:
                 actionsSubject.send(.cancelled)
             case .presentDeclineAndBlock(let userID):

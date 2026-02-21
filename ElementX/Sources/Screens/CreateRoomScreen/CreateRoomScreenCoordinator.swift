@@ -10,8 +10,6 @@ import Combine
 import SwiftUI
 
 struct CreateRoomScreenCoordinatorParameters {
-    let isSpace: Bool
-    let spaceSelectionMode: CreateRoomScreenSpaceSelectionMode
     let shouldShowCancelButton: Bool
     let userSession: UserSessionProtocol
     let userIndicatorController: UserIndicatorControllerProtocol
@@ -20,7 +18,7 @@ struct CreateRoomScreenCoordinatorParameters {
 }
 
 enum CreateRoomScreenCoordinatorAction {
-    case createdRoom(JoinedRoomProxyProtocol, SpaceRoomListProxyProtocol?)
+    case createdRoom(JoinedRoomProxyProtocol)
     case displayMediaPickerWithMode(MediaPickerScreenMode)
     case dismiss
 }
@@ -35,9 +33,7 @@ final class CreateRoomScreenCoordinator: CoordinatorProtocol {
     }
     
     init(parameters: CreateRoomScreenCoordinatorParameters) {
-        viewModel = CreateRoomScreenViewModel(isSpace: parameters.isSpace,
-                                              spaceSelectionMode: parameters.spaceSelectionMode,
-                                              shouldShowCancelButton: parameters.shouldShowCancelButton,
+        viewModel = CreateRoomScreenViewModel(shouldShowCancelButton: parameters.shouldShowCancelButton,
                                               userSession: parameters.userSession,
                                               analytics: parameters.analytics,
                                               userIndicatorController: parameters.userIndicatorController,
@@ -48,8 +44,8 @@ final class CreateRoomScreenCoordinator: CoordinatorProtocol {
         viewModel.actions.sink { [weak self] action in
             guard let self else { return }
             switch action {
-            case .createdRoom(let roomProxy, let spaceRoomListProxy):
-                actionsSubject.send(.createdRoom(roomProxy, spaceRoomListProxy))
+            case .createdRoom(let roomProxy):
+                actionsSubject.send(.createdRoom(roomProxy))
             case .displayCameraPicker:
                 actionsSubject.send(.displayMediaPickerWithMode(.init(source: .camera, selectionType: .single)))
             case .displayMediaPicker:

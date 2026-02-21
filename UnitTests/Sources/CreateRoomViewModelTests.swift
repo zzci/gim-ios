@@ -14,7 +14,6 @@ import XCTest
 class CreateRoomScreenViewModelTests: XCTestCase {
     var viewModel: CreateRoomScreenViewModelProtocol!
     var clientProxy: ClientProxyMock!
-    var spaceService: SpaceServiceProxyMock!
     var userSession: UserSessionMock!
     
     private let usersSubject = CurrentValueSubject<[UserProfileProxy], Never>([])
@@ -27,16 +26,13 @@ class CreateRoomScreenViewModelTests: XCTestCase {
         AppSettings.resetAllSettings()
         viewModel = nil
         clientProxy = nil
-        spaceService = nil
         userSession = nil
     }
     
     func testDefaultState() {
         setup()
         XCTAssertEqual(context.viewState.bindings.selectedAccessType, .private)
-        XCTAssertNil(context.selectedSpace)
         XCTAssertEqual(context.viewState.availableAccessTypes, [.public, .askToJoin, .private])
-        XCTAssertTrue(context.viewState.canSelectSpace)
     }
     
     func testCreateRoomRequirements() {
@@ -58,48 +54,6 @@ class CreateRoomScreenViewModelTests: XCTestCase {
         clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReturnValue = .success("1")
         let deferred = deferFulfillment(viewModel.actions) { action in
             guard case .createdRoom(let roomProxy, nil) = action, roomProxy.id == "1" else { return false }
-            return true
-        }
-        context.send(viewAction: .createRoom)
-        try await deferred.fulfill()
-        
-        // Then the room should be created and a topic should not be set.
-        XCTAssertTrue(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartCalled)
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.name, "A")
-        XCTAssertNil(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.topic,
-                     "The topic should be sent as nil when it is empty.")
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.accessType, .private)
-    }
-    
-    func testCreateSpace() async throws {
-        setup(isSpace: true)
-        clientProxy = ClientProxyMock(.init(userIDServerName: "matrix.org",
-                                            userID: "@a:b.com",
-                                            spaceServiceConfiguration: .init(spaceRoomLists: ["1": .init()])))
-        clientProxy.roomForIdentifierClosure = { roomID in .joined(JoinedRoomProxyMock(.init(id: roomID))) }
-        userSession = UserSessionMock(.init(clientProxy: clientProxy))
-        ServiceLocator.shared.settings.knockingEnabled = true
-        let viewModel = CreateRoomScreenViewModel(isSpace: true,
-                                                  spaceSelectionMode: .none,
-                                                  shouldShowCancelButton: false,
-                                                  userSession: userSession,
-                                                  analytics: ServiceLocator.shared.analytics,
-                                                  userIndicatorController: UserIndicatorControllerMock(),
-                                                  appSettings: ServiceLocator.shared.settings)
-        self.viewModel = viewModel
-        
-        // Given a form with a blank topic.
-        context.send(viewAction: .updateRoomName("A"))
-        context.roomTopic = ""
-        context.selectedAccessType = .private
-        XCTAssertTrue(context.viewState.canCreateRoom)
-        
-        // When creating the room.
-        clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReturnValue = .success("1")
-        let deferred = deferFulfillment(viewModel.actions) { action in
-            guard case .createdRoom(let roomProxy, let spaceRoomListProxy) = action,
-                  spaceRoomListProxy != nil,
-                  roomProxy.id == "1" else { return false }
             return true
         }
         context.send(viewAction: .createRoom)
@@ -221,116 +175,13 @@ class CreateRoomScreenViewModelTests: XCTestCase {
         XCTAssertEqual(context.viewState.roomName, "Hello# Matrix!")
     }
     
-    func testCreateRoomInASelectedSpaceFromTheList() async throws {
-        let spaces = [SpaceServiceRoom].mockJoinedSpaces2
-        setup()
-        
-        context.send(viewAction: .updateRoomName("A"))
-        context.selectedAccessType = .public
-        XCTAssertTrue(context.viewState.canCreateRoom)
-        XCTAssertNil(context.selectedSpace)
-        XCTAssertEqual(context.viewState.availableAccessTypes, [.public, .askToJoin, .private])
-        XCTAssertTrue(context.viewState.canSelectSpace)
-        
-        var deferred = deferFulfillment(context.$viewState) { viewState in
-            viewState.editableSpaces.map(\.id) == spaces.map(\.id)
-        }
-        try await deferred.fulfill()
-        
-        context.selectedSpace = spaces[0]
-        deferred = deferFulfillment(context.$viewState) { viewState in
-            viewState.bindings.selectedSpace?.id == spaces[0].id &&
-                viewState.availableAccessTypes == [.spaceMembers, .askToJoinWithSpaceMembers, .private] &&
-                // The value should reset since the original one is not available anymore
-                viewState.bindings.selectedAccessType == .private
-        }
-        try await deferred.fulfill()
-        
-        // When creating the room.
-        clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReturnValue = .success("1")
-        let expectation = expectation(description: "Wait for the addChild function to be called")
-        spaceService.addChildToClosure = { roomID, spaceID in
-            defer { expectation.fulfill() }
-            XCTAssertEqual(roomID, "1")
-            XCTAssertEqual(spaceID, spaces[0].id)
-            return .success(())
-        }
-        
-        let deferredAction = deferFulfillment(viewModel.actions) { action in
-            guard case .createdRoom(let roomProxy, nil) = action, roomProxy.id == "1" else { return false }
-            return true
-        }
-        context.send(viewAction: .createRoom)
-        
-        await fulfillment(of: [expectation])
-        try await deferredAction.fulfill()
-        
-        XCTAssertTrue(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartCalled)
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.name, "A")
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.accessType, .private)
-    }
-    
-    func testCreateRoomInAnAlreadySelectedSpace() async throws {
-        let space = SpaceServiceRoom.mock(isSpace: true, joinRule: .invite)
-        setup(spacesSelectionMode: .editableSpacesList(preSelectedSpace: space))
-        
-        context.send(viewAction: .updateRoomName("A"))
-        context.selectedAccessType = .spaceMembers
-        XCTAssertTrue(context.viewState.canCreateRoom)
-        XCTAssertEqual(context.selectedSpace?.id, space.id)
-        XCTAssertEqual(context.viewState.availableAccessTypes, [.spaceMembers, .askToJoinWithSpaceMembers, .private])
-        XCTAssertTrue(context.viewState.canSelectSpace)
-        
-        // When creating the room.
-        clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReturnValue = .success("1")
-        let expectation = expectation(description: "Wait for the addChild function to be called")
-        spaceService.addChildToClosure = { roomID, spaceID in
-            defer { expectation.fulfill() }
-            XCTAssertEqual(roomID, "1")
-            XCTAssertEqual(spaceID, space.id)
-            return .success(())
-        }
-        
-        let deferredAction = deferFulfillment(viewModel.actions) { action in
-            guard case .createdRoom(let roomProxy, nil) = action, roomProxy.id == "1" else { return false }
-            return true
-        }
-        context.send(viewAction: .createRoom)
-        
-        await fulfillment(of: [expectation])
-        try await deferredAction.fulfill()
-        
-        XCTAssertTrue(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartCalled)
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.name, "A")
-        XCTAssertEqual(clientProxy.createRoomNameTopicAccessTypeIsSpaceUserIDsAvatarURLAliasLocalPartReceivedArguments?.accessType, .spaceMembers(spaceID: space.id))
-    }
-    
-    func testCreateRoomInAnPublicSpaceAvailableTypes() {
-        let space = SpaceServiceRoom.mock(isSpace: true, joinRule: .public)
-        setup(spacesSelectionMode: .editableSpacesList(preSelectedSpace: space))
-        
-        // Given a form with a blank topic.
-        context.send(viewAction: .updateRoomName("A"))
-        context.roomTopic = ""
-        context.selectedAccessType = .spaceMembers
-        XCTAssertTrue(context.viewState.canCreateRoom)
-        XCTAssertEqual(context.selectedSpace?.id, space.id)
-        XCTAssertEqual(context.viewState.availableAccessTypes, [.public, .askToJoin, .private])
-        XCTAssertTrue(context.viewState.canSelectSpace)
-    }
-    
-    private func setup(isSpace: Bool = false, spacesSelectionMode: CreateRoomScreenSpaceSelectionMode = .editableSpacesList(preSelectedSpace: nil)) {
-        spaceService = SpaceServiceProxyMock(.init(editableSpaces: .mockJoinedSpaces2,
-                                                   spaceRoomLists: ["1": .init()]))
+    private func setup() {
         clientProxy = ClientProxyMock(.init(userIDServerName: "matrix.org",
                                             userID: "@a:b.com"))
-        clientProxy.spaceService = spaceService
         clientProxy.roomForIdentifierClosure = { roomID in .joined(JoinedRoomProxyMock(.init(id: roomID))) }
         userSession = UserSessionMock(.init(clientProxy: clientProxy))
         ServiceLocator.shared.settings.knockingEnabled = true
-        let viewModel = CreateRoomScreenViewModel(isSpace: isSpace,
-                                                  spaceSelectionMode: spacesSelectionMode,
-                                                  shouldShowCancelButton: false,
+        let viewModel = CreateRoomScreenViewModel(shouldShowCancelButton: false,
                                                   userSession: userSession,
                                                   analytics: ServiceLocator.shared.analytics,
                                                   userIndicatorController: UserIndicatorControllerMock(),

@@ -61,9 +61,7 @@ class ClientProxy: ClientProxyProtocol {
     let secureBackupController: SecureBackupControllerProtocol
     
     private(set) var sessionVerificationController: SessionVerificationControllerProxyProtocol?
-    
-    let spaceService: SpaceServiceProxyProtocol
-    
+
     private static var roomCreationPowerLevelOverrides: PowerLevels {
         .init(usersDefault: nil,
               eventsDefault: nil,
@@ -203,9 +201,7 @@ class ClientProxy: ClientProxyProtocol {
         notificationSettings = await NotificationSettingsProxy(notificationSettings: client.getNotificationSettings())
         
         secureBackupController = SecureBackupController(encryption: client.encryption())
-        
-        spaceService = await SpaceServiceProxy(spaceService: client.spaceService())
-        
+
         let configuredAppService = try await ClientProxyServices(client: client,
                                                                  actionsSubject: actionsSubject,
                                                                  notificationSettings: notificationSettings,

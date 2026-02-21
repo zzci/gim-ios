@@ -31,8 +31,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
     
     // periphery:ignore - retaining purpose
     private var roomFlowCoordinator: RoomFlowCoordinator?
-    // periphery:ignore - retaining purpose
-    private var spaceFlowCoordinator: SpaceFlowCoordinator?
     
     // periphery:ignore - retaining purpose
     private var bugReportFlowCoordinator: BugReportFlowCoordinator?
@@ -198,13 +196,7 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                 handleSelectRoomTransition(roomID: roomID, via: via, entryPoint: entryPoint, detailState: detailState, animated: animated)
             case(.roomList, .deselectRoom, .roomList):
                 dismissRoomFlow(animated: animated)
-            
-            case(.roomList, .startSpaceFlow, .roomList):
-                guard let spaceRoomListProxy = userInfo?.spaceRoomListProxy else { fatalError("A space room list proxy is required.") }
-                startSpaceFlow(spaceRoomListProxy: spaceRoomListProxy, animated: animated)
-            case (.roomList, .finishedSpaceFlow, .roomList):
-                dismissSpaceFlow(animated: animated)
-                
+
             case (.roomList, .feedbackScreen, .feedbackScreen):
                 bugReportFlowCoordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .sheet(sidebarNavigationStackCoordinator),
                                                                                       userIndicatorController: flowParameters.userIndicatorController,
@@ -283,9 +275,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             switch context.toState {
             case .roomList(detailState: .room(let detailStateRoomID)):
                 self?.selectedRoomSubject.send(detailStateRoomID)
-            case .roomList(detailState: .space):
-                // We don't show joined spaces in the room list yet so clear the selected room when accepting a space invite.
-                self?.selectedRoomSubject.send(nil)
             case .roomList(detailState: nil):
                 self?.selectedRoomSubject.send(nil)
             default:
@@ -316,9 +305,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             }
             roomFlowCoordinator.handleAppRoute(route, animated: animated)
         } else {
-            if case .space = detailState {
-                dismissRoomFlow(animated: animated)
-            }
             startRoomFlow(roomID: roomID, via: via, entryPoint: entryPoint, animated: animated)
         }
     }
@@ -394,8 +380,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                     handleAppRoute(.roomDetails(roomID: roomID), animated: true)
                 case .presentReportRoom(let roomID):
                     stateMachine.processEvent(.presentReportRoomScreen(roomID: roomID))
-                case .presentSpace(let spaceRoomListProxy):
-                    stateMachine.processEvent(.startSpaceFlow, userInfo: .init(animated: true, spaceRoomListProxy: spaceRoomListProxy))
                 case .roomLeft(let roomID):
                     if case .roomList(detailState: .room(let detailStateRoomID)) = stateMachine.state,
                        detailStateRoomID == roomID {
@@ -526,8 +510,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
             switch action {
             case .verifyUser(let userID):
                 actionsSubject.send(.sessionVerification(.userInitiator(userID: userID)))
-            case .continueWithSpaceFlow(let spaceRoomListProxy):
-                stateMachine.processEvent(.startSpaceFlow, userInfo: .init(animated: false, spaceRoomListProxy: spaceRoomListProxy))
             case .finished:
                 stateMachine.processEvent(.deselectRoom)
             }
@@ -566,40 +548,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
         roomFlowCoordinator = nil
     }
     
-    // MARK: Space Flow
-    
-    private func startSpaceFlow(spaceRoomListProxy: SpaceRoomListProxyProtocol, animated: Bool) {
-        let navigationStackCoordinator = NavigationStackCoordinator(navigationSplitCoordinator: navigationSplitCoordinator)
-        let coordinator = SpaceFlowCoordinator(entryPoint: .space(spaceRoomListProxy),
-                                               spaceServiceProxy: userSession.clientProxy.spaceService,
-                                               isChildFlow: false,
-                                               navigationStackCoordinator: navigationStackCoordinator,
-                                               flowParameters: flowParameters)
-        coordinator.actionsPublisher
-            .sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .verifyUser(let userID):
-                    actionsSubject.send(.sessionVerification(.userInitiator(userID: userID)))
-                case .finished:
-                    stateMachine.processEvent(.finishedSpaceFlow)
-                }
-            }
-            .store(in: &cancellables)
-        
-        spaceFlowCoordinator = coordinator
-        
-        navigationSplitCoordinator.setDetailCoordinator(navigationStackCoordinator, animated: animated)
-        
-        coordinator.start()
-    }
-    
-    private func dismissSpaceFlow(animated: Bool) {
-        // Based on dismissRoomFlow, past me was very insistent that this must happen after the flow has tidied the stack 😅.
-        navigationSplitCoordinator.setDetailCoordinator(nil, animated: animated)
-        roomFlowCoordinator = nil
-    }
-    
     // MARK: Start Chat
     
     private func startStartChatFlow(animated: Bool) {
@@ -619,9 +567,6 @@ class ChatsTabFlowCoordinator: FlowCoordinatorProtocol {
                     switch result {
                     case .room(let roomID):
                         stateMachine.processEvent(.selectRoom(roomID: roomID, via: [], entryPoint: .room))
-                    case .space(let spaceRoomListProxy):
-                        // This also automatically handles selecting the space.
-                        stateMachine.processEvent(.selectRoom(roomID: spaceRoomListProxy.id, via: [], entryPoint: .room))
                     case .cancelled:
                         break
                     }

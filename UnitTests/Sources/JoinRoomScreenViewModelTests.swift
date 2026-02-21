@@ -47,7 +47,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         
         XCTAssertTrue(appSettings.seenInvites.isEmpty, "Only an invited room should register the room ID as a seen invite.")
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(roomID: "1") }
         context.send(viewAction: .join)
         try await deferred.fulfill()
     }
@@ -60,7 +60,7 @@ class JoinRoomScreenViewModelTests: XCTestCase {
         
         XCTAssertEqual(appSettings.seenInvites, ["1"], "The invited room's ID should be registered as a seen invite.")
         
-        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(.roomID("1")) }
+        let deferred = deferFulfillment(viewModel.actionsPublisher) { $0 == .joined(roomID: "1") }
         context.send(viewAction: .acceptInvite)
         try await deferred.fulfill()
         
@@ -205,10 +205,8 @@ extension JoinRoomScreenViewModelAction: @retroactive Equatable {
     /// A close enough approximation for tests.
     public static func == (lhs: JoinRoomScreenViewModelAction, rhs: JoinRoomScreenViewModelAction) -> Bool {
         switch (lhs, rhs) {
-        case (.joined(.roomID(let lhsRoomID)), .joined(.roomID(let rhsRoomID))):
+        case (.joined(let lhsRoomID), .joined(let rhsRoomID)):
             lhsRoomID == rhsRoomID
-        case (.joined(.space(let lhsSpace)), .joined(.space(let rhsSpace))):
-            lhsSpace.id == rhsSpace.id
         case (.dismiss, .dismiss):
             true
         case (.presentDeclineAndBlock(let lhsUserID), .presentDeclineAndBlock(let rhsUserID)):

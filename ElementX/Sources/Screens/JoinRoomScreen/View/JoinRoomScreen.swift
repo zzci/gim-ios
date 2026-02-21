@@ -72,17 +72,10 @@ struct JoinRoomScreen: View {
                     .multilineTextAlignment(.center)
                 
                 if let subtitle = context.viewState.subtitle {
-                    Label {
-                        Text(subtitle)
-                            .font(.compound.bodyLG)
-                            .foregroundStyle(.compound.textSecondary)
-                            .multilineTextAlignment(.center)
-                    } icon: {
-                        if let icon = context.viewState.subtitleIcon {
-                            CompoundIcon(icon, size: .small, relativeTo: .compound.bodyLG)
-                                .foregroundStyle(.compound.iconTertiary)
-                        }
-                    }
+                    Text(subtitle)
+                        .font(.compound.bodyLG)
+                        .foregroundStyle(.compound.textSecondary)
+                        .multilineTextAlignment(.center)
                 }
                 
                 if !context.viewState.isDMInvite, let memberCount = context.viewState.roomDetails?.memberCount {
@@ -351,42 +344,18 @@ struct JoinRoomScreen_Previews: PreviewProvider, TestablePreview {
     }
 }
 
-struct JoinRoomScreenSpace_Previews: PreviewProvider, TestablePreview {
-    static let previewWrappers: [JoinRoomScreenPreviewWrapper] = [
-        .init(isSpace: true, mode: .joinable),
-        .init(isSpace: true, mode: .restricted, canJoinRoom: false),
-        .init(isSpace: true, mode: .restricted, customPreviewName: "RestrictedJoinable"),
-        .init(isSpace: true, mode: .inviteRequired),
-        .init(isSpace: true, mode: .invited(isDM: false)),
-        .init(isSpace: true, mode: .invited(isDM: false), hideInviteAvatars: true, customPreviewName: "InvitedWithHiddenAvatars"),
-        .init(isSpace: true, mode: .knockable),
-        .init(isSpace: true, mode: .knocked),
-        .init(isSpace: true, mode: .banned(sender: "Bob", reason: "Spamming")),
-        .init(isSpace: true, mode: .forbidden)
-    ]
-    
-    static var previews: some View {
-        ForEach(previewWrappers) { wrapper in
-            wrapper.preview
-        }
-    }
-}
-
 @MainActor
 struct JoinRoomScreenPreviewWrapper: Identifiable {
     let id = UUID()
     let viewModel: JoinRoomScreenViewModel
     let mode: JoinRoomScreenMode
-    let isSpace: Bool
     let customPreviewName: String?
-    
-    init(isSpace: Bool = false,
-         mode: JoinRoomScreenMode,
+
+    init(mode: JoinRoomScreenMode,
          canJoinRoom: Bool = true,
          hideInviteAvatars: Bool = false,
          customPreviewName: String? = nil) {
         self.mode = mode
-        self.isSpace = isSpace
         self.customPreviewName = customPreviewName
         
         let appSettings = AppSettings()
@@ -443,13 +412,7 @@ struct JoinRoomScreenPreviewWrapper: Identifiable {
             break
         }
         
-        let source: JoinRoomScreenSource = if isSpace {
-            .space(SpaceServiceRoom.mock(joinRoomScreenMode: mode))
-        } else {
-            .generic(roomID: "1", via: [])
-        }
-        
-        viewModel = JoinRoomScreenViewModel(source: source,
+        viewModel = JoinRoomScreenViewModel(source: .generic(roomID: "1", via: []),
                                             appSettings: appSettings,
                                             userSession: UserSessionMock(.init(clientProxy: clientProxy)),
                                             userIndicatorController: ServiceLocator.shared.userIndicatorController)
@@ -483,7 +446,6 @@ struct JoinRoomScreenPreviewWrapper: Identifiable {
     @ViewBuilder
     var preview: some View {
         let previewDisplayName = customPreviewName ?? previewDisplayName
-        let previewDisplayNameSuffix = isSpace ? " Space" : ""
         if mode == .forbidden {
             ElementNavigationStack {
                 JoinRoomScreen(context: viewModel.context)
@@ -494,7 +456,7 @@ struct JoinRoomScreenPreviewWrapper: Identifiable {
             .onAppear {
                 viewModel.context.send(viewAction: .join)
             }
-            .previewDisplayName(previewDisplayName + previewDisplayNameSuffix)
+            .previewDisplayName(previewDisplayName)
         } else {
             ElementNavigationStack {
                 JoinRoomScreen(context: viewModel.context)
@@ -502,7 +464,7 @@ struct JoinRoomScreenPreviewWrapper: Identifiable {
             .snapshotPreferences(expect: viewModel.context.$viewState.map { state in
                 state.roomDetails != nil
             })
-            .previewDisplayName(previewDisplayName + previewDisplayNameSuffix)
+            .previewDisplayName(previewDisplayName)
         }
     }
 }

@@ -35,7 +35,6 @@ final class AppSettings {
     private enum UserDefaultsKeys: String {
         case lastVersionLaunched
         case seenInvites
-        case hasSeenSpacesAnnouncement
         case hasSeenNewSoundBanner
         case appLockNumberOfPINAttempts
         case appLockNumberOfBiometricAttempts
@@ -70,11 +69,6 @@ final class AppSettings {
         case linkPreviewsEnabled
         case focusEventOnNotificationTap
         case linkNewDeviceEnabled
-        
-        // Spaces
-        case spaceFiltersEnabled
-        case spaceSettingsEnabled
-        case createSpaceEnabled
         
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
@@ -176,9 +170,6 @@ final class AppSettings {
     /// This Set is being used to implement badges for unread invites.
     @UserPreference(key: UserDefaultsKeys.seenInvites, defaultValue: [], storageType: .userDefaults(store))
     var seenInvites: Set<String>
-    
-    @UserPreference(key: UserDefaultsKeys.hasSeenSpacesAnnouncement, defaultValue: false, storageType: .userDefaults(store))
-    var hasSeenSpacesAnnouncement
     
     /// Defaults to `true` for new users, and we use a migration to set it to `false` for existing users.
     @UserPreference(key: UserDefaultsKeys.hasSeenNewSoundBanner, defaultValue: true, storageType: .userDefaults(store))
@@ -371,16 +362,6 @@ final class AppSettings {
     var sharePresence
     
     // MARK: - Feature Flags
-    
-    /// Spaces
-    @UserPreference(key: UserDefaultsKeys.spaceSettingsEnabled, defaultValue: true, storageType: .volatile)
-    var spaceSettingsEnabled
-    
-    @UserPreference(key: UserDefaultsKeys.createSpaceEnabled, defaultValue: true, storageType: .volatile)
-    var createSpaceEnabled
-    
-    @UserPreference(key: UserDefaultsKeys.spaceFiltersEnabled, defaultValue: true, storageType: .volatile)
-    var spaceFiltersEnabled
     
     /// Others
     @UserPreference(key: UserDefaultsKeys.publicSearchEnabled, defaultValue: false, storageType: .userDefaults(store))

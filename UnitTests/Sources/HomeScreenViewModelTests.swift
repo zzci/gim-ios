@@ -267,7 +267,7 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testInviteUnreadBadge() async throws {
-        setupViewModel(invites: .rooms)
+        setupViewModel(invites: true)
         var invites = context.viewState.rooms.invites
         XCTAssertEqual(invites.count, 2)
         
@@ -290,7 +290,7 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testAcceptInvite() async throws {
-        setupViewModel(invites: .rooms)
+        setupViewModel(invites: true)
         
         let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)
         appSettings.seenInvites = Set(invitedRoomIDs)
@@ -304,25 +304,8 @@ class HomeScreenViewModelTests: XCTestCase {
         XCTAssertFalse(notificationManager.removeDeliveredMessageNotificationsForCalled, "The notification will be dismissed when opening the room.")
     }
     
-    func testAcceptSpaceInvite() async throws {
-        setupViewModel(invites: .spaces)
-        
-        let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)
-        appSettings.seenInvites = Set(invitedRoomIDs)
-        XCTAssertEqual(invitedRoomIDs.count, 2)
-        
-        let deferred = deferFulfillment(viewModel.actions) {
-            $0 == .presentSpace(SpaceRoomListProxyMock(.init(spaceServiceRoom: SpaceServiceRoom.mock(id: invitedRoomIDs[0], isSpace: true))))
-        }
-        context.send(viewAction: .acceptInvite(roomIdentifier: invitedRoomIDs[0]))
-        try await deferred.fulfill()
-        
-        XCTAssertEqual(appSettings.seenInvites, [invitedRoomIDs[1]])
-        XCTAssertFalse(notificationManager.removeDeliveredMessageNotificationsForCalled, "The notification will be dismissed when opening the room.")
-    }
-    
     func testDeclineInvite() async throws {
-        setupViewModel(invites: .rooms)
+        setupViewModel(invites: true)
         let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)
         appSettings.seenInvites = Set(invitedRoomIDs)
         XCTAssertEqual(invitedRoomIDs.count, 2)
@@ -350,7 +333,7 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     func testDeclineAndBlockInvite() async throws {
-        setupViewModel(invites: .rooms)
+        setupViewModel(invites: true)
         let invitedRoomIDs = context.viewState.rooms.invites.compactMap(\.roomID)
         appSettings.seenInvites = Set(invitedRoomIDs)
         XCTAssertEqual(invitedRoomIDs.count, 2)
@@ -378,42 +361,24 @@ class HomeScreenViewModelTests: XCTestCase {
     }
     
     // MARK: - Helpers
-    
-    enum InviteType { case rooms, spaces }
-    
-    private func setupViewModel(securityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never>? = nil, invites: InviteType? = nil) {
+
+    private func setupViewModel(securityStatePublisher: CurrentValuePublisher<SessionSecurityState, Never>? = nil, invites: Bool = false) {
         var rooms: [RoomSummary] = .mockRooms
-        
-        switch invites {
-        case .rooms:
+
+        if invites {
             rooms += .mockInvites
-        case .spaces:
-            rooms += .mockSpaceInvites
-        case nil:
-            break
         }
-        
+
         roomSummaryProvider = RoomSummaryProviderMock(.init(state: .loaded(rooms)))
-        
+
         clientProxy = ClientProxyMock(.init(userID: "@mock:client.com",
                                             roomSummaryProvider: roomSummaryProvider))
-        
+
         clientProxy.joinRoomViaReturnValue = .success(())
         clientProxy.joinRoomAliasReturnValue = .success(())
-        
-        switch invites {
-        case .rooms:
+
+        if invites {
             clientProxy.roomForIdentifierClosure = { roomID in .invited(InvitedRoomProxyMock(.init(id: roomID))) }
-        case .spaces:
-            clientProxy.roomForIdentifierClosure = { spaceID in .invited(InvitedRoomProxyMock(.init(id: spaceID, isSpace: true))) }
-            
-            let spaceServiceProxy = SpaceServiceProxyMock(.init())
-            spaceServiceProxy.spaceRoomListSpaceIDClosure = { spaceID in
-                .success(SpaceRoomListProxyMock(.init(spaceServiceRoom: SpaceServiceRoom.mock(id: spaceID, isSpace: true))))
-            }
-            clientProxy.underlyingSpaceService = spaceServiceProxy
-        case nil:
-            break
         }
         
         let userSession = UserSessionMock(.init(clientProxy: clientProxy))
@@ -455,8 +420,6 @@ extension HomeScreenViewModelAction: @retroactive Equatable {
             lhsID == rhsID
         case (.presentDeclineAndBlock(let lhsUserID, let lhsRoomID), .presentDeclineAndBlock(let rhsUserID, let rhsRoomID)):
             lhsUserID == rhsUserID && lhsRoomID == rhsRoomID
-        case (.presentSpace(let lhsSpaceRoomListProxy), .presentSpace(let rhsSpaceRoomListProxy)):
-            lhsSpaceRoomListProxy.id == rhsSpaceRoomListProxy.id
         case (.roomLeft(let lhsID), .roomLeft(let rhsID)):
             lhsID == rhsID
         case (.transferOwnership(let lhsID), .transferOwnership(let rhsID)):

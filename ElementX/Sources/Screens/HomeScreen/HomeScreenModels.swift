@@ -15,7 +15,6 @@ enum HomeScreenViewModelAction {
     case presentRoomDetails(roomIdentifier: String)
     case presentReportRoom(roomIdentifier: String)
     case presentDeclineAndBlock(userID: String, roomID: String)
-    case presentSpace(SpaceRoomListProxyProtocol)
     case roomLeft(roomIdentifier: String)
     case transferOwnership(roomIdentifier: String)
     case presentSecureBackupSettings
@@ -43,7 +42,6 @@ enum HomeScreenViewAction {
     case dismissNewSoundBanner
     case updateVisibleItemRange(Range<Int>)
     case globalSearch
-    case spaceFilters
     case markRoomAsUnread(roomIdentifier: String)
     case markRoomAsRead(roomIdentifier: String)
     case markRoomAsFavourite(roomIdentifier: String, isFavourite: Bool)
@@ -109,12 +107,7 @@ struct HomeScreenViewState: BindableState {
     var hideInviteAvatars = false
     
     var reportRoomEnabled = false
-    
-    var spaceFiltersEnabled = false
-    
-    var shouldShowSpaceFilters = false
-    var selectedSpaceFilter: SpaceServiceFilter?
-    
+
     var visibleRooms: [HomeScreenRoom] {
         if roomListMode == .skeletons {
             return placeholderRooms
@@ -138,7 +131,7 @@ struct HomeScreenViewState: BindableState {
     
     var shouldShowEmptyFilterState: Bool {
         !bindings.isSearchFieldFocused &&
-            (bindings.filtersState.isFiltering || selectedSpaceFilter != nil) &&
+            bindings.filtersState.isFiltering &&
             visibleRooms.isEmpty
     }
     
@@ -158,8 +151,6 @@ struct HomeScreenViewStateBindings {
     
     var alertInfo: AlertInfo<UUID>?
     var leaveRoomAlertItem: LeaveRoomAlertItem?
-    
-    var spaceFiltersViewModel: ChatsSpaceFiltersScreenViewModel?
 }
 
 struct HomeScreenRoom: Identifiable, Equatable {
