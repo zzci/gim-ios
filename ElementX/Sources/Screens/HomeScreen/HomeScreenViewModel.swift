@@ -21,12 +21,21 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private let userIndicatorController: UserIndicatorControllerProtocol
     
     private let roomSummaryProvider: RoomSummaryProviderProtocol?
-    
+
+    /// Tracks active fire-and-forget tasks so they can be cancelled on deinit.
+    private var tasks: [Task<Void, Never>] = []
+
     private var actionsSubject: PassthroughSubject<HomeScreenViewModelAction, Never> = .init()
     var actions: AnyPublisher<HomeScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-    
+
+    deinit {
+        for task in tasks {
+            task.cancel()
+        }
+    }
+
     // swiftlint:disable:next function_body_length
     init(userSession: UserSessionProtocol,
          selectedRoomPublisher: CurrentValuePublisher<String?, Never>,
@@ -103,9 +112,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .weakAssign(to: \.state.hideInviteAvatars, on: self)
             .store(in: &cancellables)
         
-        Task {
+        tasks.append(Task {
             state.reportRoomEnabled = await userSession.clientProxy.isReportRoomSupported
-        }
+        })
         
         let isSearchFieldFocused = context.$viewState.map(\.bindings.isSearchFieldFocused)
         let searchQuery = context.$viewState.map(\.bindings.searchQuery)
@@ -139,7 +148,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .leaveRoom(let roomIdentifier):
             startLeaveRoomProcess(roomID: roomIdentifier)
         case .confirmLeaveRoom(let roomIdentifier):
-            Task { await leaveRoom(roomID: roomIdentifier) }
+            tasks.append(Task { await leaveRoom(roomID: roomIdentifier) })
         case .reportRoom(let roomIdentifier):
             actionsSubject.send(.presentReportRoom(roomIdentifier: roomIdentifier))
         case .showSettings:
@@ -161,47 +170,47 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         case .globalSearch:
             actionsSubject.send(.presentGlobalSearch)
         case .markRoomAsUnread(let roomIdentifier):
-            Task {
+            tasks.append(Task {
                 guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomIdentifier) else {
                     MXLog.error("Failed retrieving room for identifier: \(roomIdentifier)")
                     return
                 }
-                
+
                 switch await roomProxy.flagAsUnread(true) {
                 case .success:
                     analyticsService.trackInteraction(name: .MobileRoomListRoomContextMenuUnreadToggle)
                 case .failure(let error):
                     MXLog.error("Failed marking room \(roomIdentifier) as unread with error: \(error)")
                 }
-            }
+            })
         case .markRoomAsRead(let roomIdentifier):
-            Task {
+            tasks.append(Task {
                 guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomIdentifier) else {
                     MXLog.error("Failed retrieving room for identifier: \(roomIdentifier)")
                     return
                 }
-                
+
                 switch await roomProxy.flagAsUnread(false) {
                 case .success:
                     analyticsService.trackInteraction(name: .MobileRoomListRoomContextMenuUnreadToggle)
-                    
+
                     if case .failure(let error) = await roomProxy.markAsRead(receiptType: appSettings.sharePresence ? .read : .readPrivate) {
                         MXLog.error("Failed marking room \(roomIdentifier) as read with error: \(error)")
                     }
                 case .failure(let error):
                     MXLog.error("Failed flagging room \(roomIdentifier) as read with error: \(error)")
                 }
-            }
+            })
         case .markRoomAsFavourite(let roomIdentifier, let isFavourite):
-            Task {
+            tasks.append(Task {
                 await markRoomAsFavourite(roomIdentifier, isFavourite: isFavourite)
-            }
+            })
         case .acceptInvite(let roomIdentifier):
-            Task {
+            tasks.append(Task {
                 await acceptInvite(roomID: roomIdentifier)
-            }
+            })
         case .declineInvite(let roomIdentifier):
-            Task { await showDeclineInviteConfirmationAlert(roomID: roomIdentifier) }
+            tasks.append(Task { await showDeclineInviteConfirmationAlert(roomID: roomIdentifier) })
         }
     }
     
@@ -281,10 +290,10 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
         MXLog.info("Received room summary provider update, setting view room list mode to \"\(state.roomListMode)\"")
         // Delay user profile detail loading until after the initial room list loads
         if roomListMode == .rooms {
-            Task {
-                await self.userSession.clientProxy.loadUserAvatarURL()
-                await self.userSession.clientProxy.loadUserDisplayName()
-            }
+            tasks.append(Task { [weak self] in
+                await self?.userSession.clientProxy.loadUserAvatarURL()
+                await self?.userSession.clientProxy.loadUserDisplayName()
+            })
         }
     }
         
@@ -330,7 +339,7 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     private static let leaveRoomLoadingID = "LeaveRoomLoading"
     
     private func startLeaveRoomProcess(roomID: String) {
-        Task {
+        tasks.append(Task {
             defer {
                 userIndicatorController.retractIndicatorWithId(Self.leaveRoomLoadingID)
             }
@@ -374,9 +383,9 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             }
             
             state.bindings.leaveRoomAlertItem = LeaveRoomAlertItem(roomID: roomID, isDM: roomProxy.isDirectOneToOneRoom, state: roomProxy.infoPublisher.value.isPrivate ?? true ? .private : .public)
-        }
+        })
     }
-    
+
     private func leaveRoom(roomID: String) async {
         defer {
             userIndicatorController.retractIndicatorWithId(Self.leaveRoomLoadingID)

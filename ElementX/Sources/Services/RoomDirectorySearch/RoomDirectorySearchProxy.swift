@@ -16,15 +16,14 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
     private let serialDispatchQueue = DispatchQueue(label: "im.g.message.room_directory_search_proxy", qos: .default)
     
     private let resultsSubject = CurrentValueSubject<[RoomDirectorySearchResult], Never>([])
-    
+
     var resultsPublisher: CurrentValuePublisher<[RoomDirectorySearchResult], Never> {
         resultsSubject.asCurrentValuePublisher()
     }
-    
-    private var results: [RoomDirectorySearchResult] {
-        get { resultsSubject.value }
-        set { resultsSubject.send(newValue) }
-    }
+
+    /// Local cache of results used on the serial queue for diff processing.
+    /// The subject is updated on the main queue to ensure thread safety.
+    private var results: [RoomDirectorySearchResult] = []
     
     private let diffsPublisher = PassthroughSubject<[RoomDirectorySearchEntryUpdate], Never>()
     
@@ -69,6 +68,10 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
     private func updateResultsWithDiffs(_ updates: [RoomDirectorySearchEntryUpdate]) {
         results = updates.reduce(results) { currentItems, diff in
             processDiff(diff, on: currentItems)
+        }
+        let updatedResults = results
+        DispatchQueue.main.async { [weak self] in
+            self?.resultsSubject.send(updatedResults)
         }
     }
     
