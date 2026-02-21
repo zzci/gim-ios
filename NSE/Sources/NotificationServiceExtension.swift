@@ -69,18 +69,22 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
         // the target configuration will fail. We could call exit(0) here, however with the
         // notification filtering entitlement that results in the notification being discarded
         // so we need to wait for the delegate method to be called and bail out there instead.
+        let logLevel = settings.logLevel
+        let traceLogPacks = settings.traceLogPacks
+        let hooks = appHooks
+
+        super.init()
+
         if !BootDetectionManager.isDeviceLockedAfterReboot(containerURL: URL.appGroupContainerDirectory) {
             Self.configurationLock.withLock {
                 if Self.targetConfiguration == nil {
-                    Self.targetConfiguration = Target.nse.configure(logLevel: settings.logLevel,
-                                                                    traceLogPacks: settings.traceLogPacks,
+                    Self.targetConfiguration = Target.nse.configure(logLevel: logLevel,
+                                                                    traceLogPacks: traceLogPacks,
                                                                     sentryURL: nil,
-                                                                    appHooks: appHooks)
+                                                                    appHooks: hooks)
                 }
             }
         }
-        
-        super.init()
     }
     
     override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
