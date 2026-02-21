@@ -230,7 +230,8 @@ private extension MapTilerStyle {
         case .dark:
             self = .dark
         @unknown default:
-            fatalError()
+            MXLog.warning("Unknown ColorScheme value encountered, defaulting to .light")
+            self = .light
         }
     }
 }

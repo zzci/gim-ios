@@ -66,7 +66,9 @@ extension UIImage {
             }
         }
         
-        let dc = factors.first!
+        guard let dc = factors.first else {
+            return nil
+        }
         let ac = factors.dropFirst()
         
         var hash = ""
@@ -76,7 +78,7 @@ extension UIImage {
         
         let maximumValue: Float
         if ac.count > 0 {
-            let actualMaximumValue = ac.map { max(abs($0.0), abs($0.1), abs($0.2)) }.max()!
+            let actualMaximumValue = ac.map { max(abs($0.0), abs($0.1), abs($0.2)) }.max() ?? 0
             let quantisedMaximumValue = Int(max(0, min(82, floor(actualMaximumValue * 166 - 0.5))))
             maximumValue = Float(quantisedMaximumValue + 1) / 166
             hash += quantisedMaximumValue.encode83(length: 1)
