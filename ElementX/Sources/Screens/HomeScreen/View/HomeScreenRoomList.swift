@@ -21,7 +21,7 @@ struct HomeScreenRoomList: View {
     }
     
     private var content: some View {
-        ForEach(context.viewState.visibleRooms) { room in
+        ForEach(context.viewState.visibleRooms, id: \.id) { room in
             switch room.type {
             case .placeholder:
                 HomeScreenRoomCell(room: room, isSelected: false, mediaProvider: context.mediaProvider, action: context.send)

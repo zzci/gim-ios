@@ -235,7 +235,8 @@ struct ComposerToolbar: View {
         // Fixes https://github.com/element-hq/element-x-ios/issues/3216
         context.presendCallback?()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
             context.send(viewAction: .sendMessage)
         }
     }

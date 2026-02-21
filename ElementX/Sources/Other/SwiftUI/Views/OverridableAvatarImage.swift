@@ -17,18 +17,12 @@ struct OverridableAvatarImage: View {
     let shape: LoadableAvatarImage.Shape
     let avatarSize: Avatars.Size
     let mediaProvider: MediaProviderProtocol?
-    
+
     var body: some View {
         if let overrideURL {
-            AsyncImage(url: overrideURL) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                ProgressView()
-            }
-            .scaledFrame(size: avatarSize.value)
-            .avatarShape(shape, size: avatarSize.value)
+            LocalImage(url: overrideURL, name: name, contentID: contentID)
+                .scaledFrame(size: avatarSize.value)
+                .avatarShape(shape, size: avatarSize.value)
         } else {
             LoadableAvatarImage(url: url,
                                 name: name,
@@ -37,5 +31,35 @@ struct OverridableAvatarImage: View {
                                 avatarSize: avatarSize,
                                 mediaProvider: mediaProvider)
         }
+    }
+}
+
+/// Loads a local file URL image asynchronously, replacing AsyncImage
+/// with a pattern that avoids its lack of caching.
+private struct LocalImage: View {
+    let url: URL
+    let name: String?
+    let contentID: String
+
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                PlaceholderAvatarImage(name: name, contentID: contentID)
+            }
+        }
+        .task(id: url) {
+            image = await loadImage(from: url)
+        }
+    }
+
+    private func loadImage(from url: URL) async -> UIImage? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return UIImage(data: data)
     }
 }

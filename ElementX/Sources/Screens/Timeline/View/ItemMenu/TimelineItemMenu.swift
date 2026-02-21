@@ -138,7 +138,8 @@ struct TimelineItemMenu: View {
             Button {
                 dismiss()
                 // Otherwise we get errors that a sheet is already presented
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(100))
                     context.send(viewAction: .displayEmojiPicker(itemID: item.id))
                 }
             } label: {
@@ -196,7 +197,8 @@ struct TimelineItemMenu: View {
     private func send(_ action: TimelineViewAction) {
         dismiss()
         // Otherwise we might get errors that a sheet is already presented
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
             context.send(viewAction: action)
         }
     }

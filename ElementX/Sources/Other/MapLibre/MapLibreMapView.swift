@@ -151,7 +151,8 @@ extension MapLibreMapView {
             guard let userLocation else { return }
 
             if previousUserLocation == nil, mapLibreView.options.annotations.isEmpty {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
                     mapView.setCenter(userLocation.coordinate, zoomLevel: self.mapLibreView.options.zoomLevel, animated: true)
                 }
             }

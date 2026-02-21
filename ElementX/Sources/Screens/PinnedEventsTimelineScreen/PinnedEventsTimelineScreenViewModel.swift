@@ -57,7 +57,8 @@ class PinnedEventsTimelineScreenViewModel: PinnedEventsTimelineScreenViewModelTy
             case .displayMessageForwarding(let forwardingItem):
                 state.bindings.mediaPreviewViewModel = nil
                 // We need a small delay because we need to wait for the media preview to be fully dismissed.
-                DispatchQueue.main.asyncAfter(deadline: .now() + TimelineMediaPreviewViewModel.displayMessageForwardingDelay) {
+                Task {
+                    try? await Task.sleep(for: .seconds(TimelineMediaPreviewViewModel.displayMessageForwardingDelay))
                     self.actionsSubject.send(.displayMessageForwarding(forwardingItem))
                 }
             case .viewInRoomTimeline(let itemID):

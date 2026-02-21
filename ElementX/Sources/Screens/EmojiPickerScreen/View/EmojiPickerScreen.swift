@@ -23,9 +23,9 @@ struct EmojiPickerScreen: View {
         ElementNavigationStack {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth))], spacing: 16) {
-                    ForEach(context.viewState.categories) { category in
+                    ForEach(context.viewState.categories, id: \.id) { category in
                         Section {
-                            ForEach(category.emojis) { emoji in
+                            ForEach(category.emojis, id: \.id) { emoji in
                                 Button {
                                     feedbackGenerator.impactOccurred()
                                     context.send(viewAction: .emojiTapped(emoji: emoji))

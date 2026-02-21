@@ -113,8 +113,10 @@ private struct SearchController: UIViewControllerRepresentable {
         let controller = SearchInjectionViewController(searchController: context.coordinator.searchController,
                                                        hidesSearchBarWhenScrolling: hidesSearchBarWhenScrolling)
         if accessibilityFocusOnStart {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                UIAccessibility.post(notification: .screenChanged, argument: controller.searchController.searchBar)
+            let searchBar = controller.searchController.searchBar
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                UIAccessibility.post(notification: .screenChanged, argument: searchBar)
             }
         }
         return controller
