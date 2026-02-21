@@ -130,9 +130,6 @@ packages:
   LRUCache:
     url: https://github.com/nicklockwood/LRUCache
     minorVersion: 1.2.0
-  MapLibre:
-    url: https://github.com/maplibre/maplibre-gl-native-distribution
-    minorVersion: 6.22.1
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
     minorVersion: 9.2.0

@@ -76,7 +76,6 @@ enum TestablePreviewsDictionary {
         "LoginScreen_Previews" : LoginScreen_Previews.self,
         "LongPressWithFeedback_Previews" : LongPressWithFeedback_Previews.self,
         "ManageRoomMemberSheetView_Previews" : ManageRoomMemberSheetView_Previews.self,
-        "MapLibreStaticMapView_Previews" : MapLibreStaticMapView_Previews.self,
         "MatrixUserPermalink_Previews" : MatrixUserPermalink_Previews.self,
         "MediaEventsTimelineScreen_Previews" : MediaEventsTimelineScreen_Previews.self,
         "MediaUploadPreviewScreen_Previews" : MediaUploadPreviewScreen_Previews.self,

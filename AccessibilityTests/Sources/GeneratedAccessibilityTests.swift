@@ -311,10 +311,6 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "ManageRoomMemberSheetView_Previews")
     }
 
-    func testMapLibreStaticMapView() async throws {
-        try await performAccessibilityAudit(named: "MapLibreStaticMapView_Previews")
-    }
-
     func testMatrixUserPermalink() async throws {
         try await performAccessibilityAudit(named: "MatrixUserPermalink_Previews")
     }

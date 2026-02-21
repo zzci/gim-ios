@@ -543,13 +543,6 @@ extension PreviewTests {
         }
     }
 
-    func testMapLibreStaticMapView() async throws {
-        AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
-        for (index, preview) in MapLibreStaticMapView_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
     func testMatrixUserPermalink() async throws {
         AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
         for (index, preview) in MatrixUserPermalink_Previews._allPreviews.enumerated() {

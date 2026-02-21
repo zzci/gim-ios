@@ -33,13 +33,12 @@ struct StaticLocationScreen: View {
     
     private var mapView: some View {
         ZStack(alignment: .center) {
-            MapLibreMapView(mapURLBuilder: context.viewState.mapURLBuilder,
-                            options: mapOptions,
-                            showsUserLocationMode: $context.showsUserLocationMode,
-                            error: $context.mapError,
-                            mapCenterCoordinate: $context.mapCenterLocation,
-                            isLocationAuthorized: $context.isLocationAuthorized,
-                            geolocationUncertainty: $context.geolocationUncertainty) {
+            MapKitMapView(options: mapOptions,
+                          showsUserLocationMode: $context.showsUserLocationMode,
+                          error: $context.mapError,
+                          mapCenterCoordinate: $context.mapCenterLocation,
+                          isLocationAuthorized: $context.isLocationAuthorized,
+                          geolocationUncertainty: $context.geolocationUncertainty) {
                 context.send(viewAction: .userDidPan)
             }
             .ignoresSafeArea(.all, edges: mapSafeAreaEdges)
@@ -76,10 +75,10 @@ struct StaticLocationScreen: View {
         }
     }
 
-    private var mapOptions: MapLibreMapView.Options {
-        var annotations: [LocationAnnotation] = []
+    private var mapOptions: MapKitMapView.Options {
+        var annotations: [MapAnnotationItem] = []
         if context.viewState.isLocationPickerMode == false {
-            let annotation = LocationAnnotation(coordinate: context.viewState.initialMapCenter, anchorPoint: .bottomCenter) {
+            let annotation = MapAnnotationItem(coordinate: context.viewState.initialMapCenter, anchorPoint: .bottom) {
                 LocationMarkerView()
             }
             annotations.append(annotation)
@@ -158,19 +157,16 @@ struct StaticLocationScreen: View {
 struct StaticLocationScreenViewer_Previews: PreviewProvider, TestablePreview {
     static let viewModel = StaticLocationScreenViewModel(interactionMode: .viewOnly(geoURI: .init(latitude: 41.9027835,
                                                                                                   longitude: 12.4963655)),
-                                                         mapURLBuilder: ServiceLocator.shared.settings.mapTilerConfiguration,
                                                          timelineController: MockTimelineController(),
                                                          analytics: ServiceLocator.shared.analytics,
                                                          userIndicatorController: UserIndicatorControllerMock())
     static let pickerViewModel = StaticLocationScreenViewModel(interactionMode: .picker,
-                                                               mapURLBuilder: ServiceLocator.shared.settings.mapTilerConfiguration,
                                                                timelineController: MockTimelineController(),
                                                                analytics: ServiceLocator.shared.analytics,
                                                                userIndicatorController: UserIndicatorControllerMock())
     static let descriptionViewModel = StaticLocationScreenViewModel(interactionMode: .viewOnly(geoURI: .init(latitude: 41.9027835,
                                                                                                              longitude: 12.4963655),
                                                                                                description: "Cool position"),
-                                                                    mapURLBuilder: ServiceLocator.shared.settings.mapTilerConfiguration,
                                                                     timelineController: MockTimelineController(),
                                                                     analytics: ServiceLocator.shared.analytics,
                                                                     userIndicatorController: UserIndicatorControllerMock())
@@ -193,6 +189,3 @@ struct StaticLocationScreenViewer_Previews: PreviewProvider, TestablePreview {
     }
 }
 
-private extension CGPoint {
-    static let bottomCenter: Self = .init(x: 0.5, y: 1)
-}
