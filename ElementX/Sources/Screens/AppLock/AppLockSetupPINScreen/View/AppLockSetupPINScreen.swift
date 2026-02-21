@@ -55,6 +55,7 @@ struct AppLockSetupPINScreen: View {
         .disabled(context.viewState.isLoggingOut)
         .alert(item: $context.alertInfo)
         .onAppear { textFieldFocus = true }
+        .screenCaptureProtected()
     }
     
     var header: some View {

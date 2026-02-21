@@ -31,6 +31,8 @@ internal enum UntranslatedL10n {
   }
   /// Sign in
   internal static var softLogoutSigninTitle: String { return UntranslatedL10n.tr("Untranslated", "soft_logout_signin_title") }
+  /// This content is hidden while screen recording is active.
+  internal static var screenRecordingProtection: String { return UntranslatedL10n.tr("Untranslated", "screen_recording_protection") }
   /// Untranslated
   internal static var untranslated: String { return UntranslatedL10n.tr("Untranslated", "untranslated") }
   /// Plural format key: "%#@VARIABLE@"

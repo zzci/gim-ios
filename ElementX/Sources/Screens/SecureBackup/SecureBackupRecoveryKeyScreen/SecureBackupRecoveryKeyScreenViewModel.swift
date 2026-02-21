@@ -14,7 +14,12 @@ typealias SecureBackupRecoveryKeyScreenViewModelType = StateStoreViewModelV2<Sec
 class SecureBackupRecoveryKeyScreenViewModel: SecureBackupRecoveryKeyScreenViewModelType, SecureBackupRecoveryKeyScreenViewModelProtocol {
     private let secureBackupController: SecureBackupControllerProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
-    
+
+    /// Timer to clear the recovery key from the clipboard after a timeout.
+    private var clipboardClearTask: Task<Void, Never>?
+    /// Duration after which the recovery key is cleared from the clipboard (seconds).
+    private let clipboardExpiryDuration: UInt64 = 120
+
     private var actionsSubject: PassthroughSubject<SecureBackupRecoveryKeyScreenViewModelAction, Never> = .init()
     var actions: AnyPublisher<SecureBackupRecoveryKeyScreenViewModelAction, Never> {
         actionsSubject.eraseToAnyPublisher()
@@ -52,9 +57,11 @@ class SecureBackupRecoveryKeyScreenViewModel: SecureBackupRecoveryKeyScreenViewM
                 state.isGeneratingKey = false
             }
         case .copyKey:
-            UIPasteboard.general.string = state.recoveryKey
+            let key = state.recoveryKey
+            UIPasteboard.general.string = key
             userIndicatorController.submitIndicator(.init(title: "Copied recovery key"))
             state.doneButtonEnabled = true
+            scheduleClipboardClear(for: key)
         case .keySaved:
             state.doneButtonEnabled = true
         case .confirmKey:
@@ -87,6 +94,26 @@ class SecureBackupRecoveryKeyScreenViewModel: SecureBackupRecoveryKeyScreenViewM
         }
     }
     
+    deinit {
+        clipboardClearTask?.cancel()
+    }
+
+    /// Schedules a task to clear the clipboard after `clipboardExpiryDuration` seconds,
+    /// but only if the clipboard still contains the same recovery key.
+    private func scheduleClipboardClear(for copiedKey: String?) {
+        clipboardClearTask?.cancel()
+        clipboardClearTask = Task { [clipboardExpiryDuration] in
+            try? await Task.sleep(nanoseconds: clipboardExpiryDuration * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                if UIPasteboard.general.string == copiedKey {
+                    UIPasteboard.general.string = ""
+                    MXLog.info("Recovery key cleared from clipboard after timeout")
+                }
+            }
+        }
+    }
+
     private static let loadingIndicatorIdentifier = "\(SecureBackupRecoveryKeyScreenViewModel.self)-Loading"
     
     private func showLoadingIndicator() {

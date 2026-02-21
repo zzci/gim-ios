@@ -33,6 +33,7 @@ struct SecureBackupRecoveryKeyScreen: View {
         .backgroundStyle(.compound.bgCanvasDefault)
         .interactiveDismissDisabled()
         .alert(item: $context.alertInfo)
+        .screenCaptureProtected()
     }
     
     private var mainContent: some View {

@@ -92,6 +92,7 @@ class BugReportScreenViewModel: BugReportScreenViewModelType, BugReportScreenVie
             
             do {
                 try pngData.write(to: imageURL)
+                try imageURL.setCompleteFileProtection()
                 files.append(imageURL)
             } catch {
                 MXLog.error("Failed writing screenshot to disk")

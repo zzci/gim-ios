@@ -209,6 +209,7 @@ class BugReportService: NSObject, BugReportServiceProtocol {
         try? FileManager.default.removeItem(at: zippedURL)
 
         try zippedData.write(to: zippedURL)
+        try zippedURL.setCompleteFileProtection()
         zippedFiles.appendFile(at: zippedURL, zippedSize: zippedData.count, originalSize: data.count)
     }
 
