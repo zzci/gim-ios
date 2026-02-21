@@ -91,6 +91,7 @@ jobs:
 
       - name: Archive (unsigned)
         run: |
+          set -o pipefail
           xcodebuild archive \
             -scheme "$SCHEME" \
             -configuration Release \
@@ -99,7 +100,19 @@ jobs:
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log | grep -E "^(Build |Compile|Link|Archive|error:|warning:|note:|\*\*)" || true
+          RESULT=${PIPESTATUS[0]}
+          if [ $RESULT -ne 0 ]; then
+            echo "::group::Build errors"
+            grep -A2 "error:" build.log || true
+            echo "::endgroup::"
+            echo ""
+            echo "::group::Build summary (last 50 lines)"
+            tail -50 build.log
+            echo "::endgroup::"
+            exit $RESULT
+          fi
 
       - name: Package IPA
         run: |
