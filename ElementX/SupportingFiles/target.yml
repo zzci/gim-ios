@@ -237,7 +237,6 @@ targets:
     - package: KZFileWatchers
     - package: LoremSwiftum
     - package: LRUCache
-    - package: MapLibre
     - package: SwiftState
     - package: GZIP
     - package: Sentry

@@ -135,8 +135,7 @@ final class AppSettings {
                   elementWebHosts: [String],
                   accountProvisioningHost: String,
                   bugReportApplicationID: String,
-                  analyticsTermsURL: URL?,
-                  mapTilerConfiguration: MapTilerConfiguration) {
+                  analyticsTermsURL: URL?) {
         self.accountProviders = accountProviders
         self.allowOtherAccountProviders = allowOtherAccountProviders
         self.hideBrandChrome = hideBrandChrome
@@ -156,7 +155,6 @@ final class AppSettings {
         self.accountProvisioningHost = accountProvisioningHost
         self.bugReportApplicationID = bugReportApplicationID
         self.analyticsTermsURL = analyticsTermsURL
-        self.mapTilerConfiguration = mapTilerConfiguration
     }
     
     // MARK: - Application
@@ -351,15 +349,6 @@ final class AppSettings {
     
     /// Whether to hide the display name and avatar of ignored users as these may contain objectionable content.
     let hideIgnoredUserProfiles = true
-    
-    // MARK: - Maps
-    
-    /// maptiler base url
-    /// Set your MapTiler API key via the MAPTILER_API_KEY environment variable / build setting.
-    private(set) var mapTilerConfiguration = MapTilerConfiguration(baseURL: "https://api.maptiler.com/maps",
-                                                                   apiKey: ProcessInfo.processInfo.environment["MAPTILER_API_KEY"],
-                                                                   lightStyleID: "9bc819c8-e627-474a-a348-ec144fe3d810",
-                                                                   darkStyleID: "dea61faf-292b-4774-9660-58fcef89a7f3")
     
     // MARK: - Presence
     

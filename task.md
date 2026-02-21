@@ -530,7 +530,7 @@
   - createdAt: 2026-02-22 00:00
   - blocked by: MAP-001
 
-- [ ] **MAP-003 替换MapLibreStaticMapView为MKMapSnapshotter** `P1`
+- [-] **MAP-003 替换MapLibreStaticMapView为MKMapSnapshotter** `P1`
   - description: 将MapLibreStaticMapView.swift（通过MapTiler API加载静态瓦片PNG）替换为MKMapSnapshotter本地渲染。需迁移：1）按坐标/缩放级别生成静态地图图片；2）叠加自定义Pin标注；3）3:2宽高比和最大300pt高度约束；4）深色/浅色样式适配。MKMapSnapshotter无需网络API Key，离线也可渲染缓存区域。
   - activeForm: 替换静态地图为MKMapSnapshotter中
   - createdAt: 2026-02-22 00:00
@@ -547,19 +547,19 @@
   - createdAt: 2026-02-22 00:00
   - blocked by: MAP-003
 
-- [ ] **MAP-006 移除MapTiler配置和URL构建器** `P1`
+- [x] **MAP-006 移除MapTiler配置和URL构建器** `P1`
   - description: 删除不再需要的MapTiler相关文件：1）MapTilerConfiguration.swift；2）MapTilerURLBuilderProtocol.swift；3）MapURLs.swift（MapTilerConfiguration扩展）。清理AppSettings.swift中的mapTilerBaseURL和mapTilerApiKey配置。清理project.yml或target.yml中的MAPTILER_API_KEY环境变量。
   - activeForm: 移除MapTiler配置中
   - createdAt: 2026-02-22 00:00
   - blocked by: MAP-003, MAP-004, MAP-005
 
-- [ ] **MAP-007 简化MapLibreModels为MapKit模型** `P1`
+- [x] **MAP-007 简化MapLibreModels为MapKit模型** `P1`
   - description: 重构MapLibreModels.swift：1）保留ShowUserLocationMode枚举（通用）；2）移除MapLibreError替换为适当的MapKit错误处理；3）移除MapTilerStyle枚举（MapKit自动适配主题）；4）移除MapTilerAttributionPlacement枚举；5）文件重命名为MapModels.swift。
   - activeForm: 简化地图模型中
   - createdAt: 2026-02-22 00:00
   - blocked by: MAP-004
 
-- [ ] **MAP-008 从project.yml移除MapLibre依赖** `P1`
+- [x] **MAP-008 从project.yml移除MapLibre依赖** `P1`
   - description: 从project.yml中移除MapLibre SPM依赖（maplibre-gl-native-distribution 6.22.1）。从ElementX target依赖列表中移除MapLibre包引用。运行xcodegen重新生成工程。预计减少二进制体积5-10MB。
   - activeForm: 移除MapLibre依赖中
   - createdAt: 2026-02-22 00:00
