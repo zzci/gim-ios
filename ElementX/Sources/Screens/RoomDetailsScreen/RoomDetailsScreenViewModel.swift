@@ -173,11 +173,6 @@ case .processTapPinnedEvents:
     // MARK: - Private
     
     private func processTapToLeave() {
-        guard !roomProxy.infoPublisher.value.isSpace else {
-            Task { await processLeaveSpace() }
-            return
-        }
-        
         guard state.joinedMembersCount > 1 else {
             state.bindings.leaveRoomAlertItem = LeaveRoomAlertItem(roomID: roomProxy.id,
                                                                    isDM: roomProxy.isDirectOneToOneRoom,
@@ -209,38 +204,6 @@ case .processTapPinnedEvents:
         state.bindings.leaveRoomAlertItem = LeaveRoomAlertItem(roomID: roomProxy.id,
                                                                isDM: roomProxy.isDirectOneToOneRoom,
                                                                state: roomProxy.infoPublisher.value.isPrivate ?? true ? .private : .public)
-    }
-    
-    private func processLeaveSpace() async {
-        switch await userSession.clientProxy.spaceService.leaveSpace(spaceID: roomProxy.id) {
-        case .success(let leaveHandle):
-            let leaveSpaceViewModel = LeaveSpaceViewModel(spaceName: state.details.name ?? state.details.id,
-                                                          canEditRolesAndPermissions: state.canEditRolesOrPermissions,
-                                                          leaveHandle: leaveHandle,
-                                                          userIndicatorController: userIndicatorController,
-                                                          mediaProvider: userSession.mediaProvider)
-            leaveSpaceViewModel.actions.sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .didCancel:
-                    state.bindings.leaveSpaceViewModel = nil
-                case .presentRolesAndPermissions:
-                    state.bindings.leaveSpaceViewModel = nil
-                    actionsSubject.send(.requestRolesAndPermissionsPresentation)
-                case .didLeaveSpace:
-                    state.bindings.leaveSpaceViewModel = nil
-                    actionsSubject.send(.leftRoom)
-                case .presentTransferOwnership:
-                    state.bindings.leaveSpaceViewModel = nil
-                    actionsSubject.send(.transferOwnership)
-                }
-            }
-            .store(in: &cancellables)
-            
-            state.bindings.leaveSpaceViewModel = leaveSpaceViewModel
-        case .failure:
-            userIndicatorController.submitIndicator(.init(title: L10n.errorUnknown))
-        }
     }
     
     private func setupRoomSubscription() {

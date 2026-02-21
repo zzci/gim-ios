@@ -38,17 +38,15 @@ enum RoomDetailsScreenCoordinatorAction {
 
 final class RoomDetailsScreenCoordinator: CoordinatorProtocol {
     private var viewModel: RoomDetailsScreenViewModelProtocol
-    private let isSpace: Bool
-    
+
     private let actionsSubject: PassthroughSubject<RoomDetailsScreenCoordinatorAction, Never> = .init()
     private var cancellables = Set<AnyCancellable>()
-        
+
     var actions: AnyPublisher<RoomDetailsScreenCoordinatorAction, Never> {
         actionsSubject.eraseToAnyPublisher()
     }
-        
+
     init(parameters: RoomDetailsScreenCoordinatorParameters) {
-        isSpace = parameters.roomProxy.infoPublisher.value.isSpace
         viewModel = RoomDetailsScreenViewModel(roomProxy: parameters.roomProxy,
                                                userSession: parameters.userSession,
                                                analyticsService: parameters.analyticsService,
@@ -104,10 +102,6 @@ final class RoomDetailsScreenCoordinator: CoordinatorProtocol {
     }
     
     func toPresentable() -> AnyView {
-        if isSpace {
-            AnyView(SpaceSettingsScreen(context: viewModel.context))
-        } else {
-            AnyView(RoomDetailsScreen(context: viewModel.context))
-        }
+        AnyView(RoomDetailsScreen(context: viewModel.context))
     }
 }
