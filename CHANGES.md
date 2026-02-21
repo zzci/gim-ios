@@ -820,7 +820,7 @@ Others
 * Add a SpaceScreen for listing rooms and subspaces within a space. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4412
 
 Others
-* Label rageshakes from macOS and report the right operating system. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4392
+* Label bug reports from macOS and report the right operating system. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4392
 * Remove unreachable guard condition in String.asciified() by @Copilot in https://github.com/element-hq/element-x-ios/pull/4395
 * Update dependency jpsim/Yams to from: "6.1.0" by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/4397
 * Update Roles & Permissions UI test snapshots. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4399
@@ -848,7 +848,7 @@ Others
 * Move the Settings flow from the Chats flow up one level to the UserSession flow. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4390
 
 Others
-* Label rageshakes from macOS and report the right operating system. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4392
+* Label bug reports from macOS and report the right operating system. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4392
 * Remove unreachable guard condition in String.asciified() by @Copilot in https://github.com/element-hq/element-x-ios/pull/4395
 * Update dependency jpsim/Yams to from: "6.1.0" by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/4397
 * Update Roles & Permissions UI test snapshots. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4399
@@ -896,7 +896,7 @@ Others
 * Update EC and the SDK to fix call notification issues by @Velin92 in https://github.com/element-hq/element-x-ios/pull/4382
 
 ⚠️ API Changes
-* Refactor Rageshake URL overrides and Target configuration. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4337
+* Refactor Bug report URL overrides and Target configuration. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4337
 * Update the default logs directory and allow collection from elsewhere. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4352
 * Stop showing the sliding sync proxy alert to any remaining proxy users. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4367
 * Handle `TimelineDiff` as an enum with associated values. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4379
@@ -948,7 +948,7 @@ Others
 * Fix the user defaults key used for the developer options. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4328
 
 ⚠️ API Changes
-* Refactor Rageshake URL overrides and Target configuration. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4337
+* Refactor Bug report URL overrides and Target configuration. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4337
 * Update the default logs directory and allow collection from elsewhere. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4352
 * Stop showing the sliding sync proxy alert to any remaining proxy users. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4367
 
@@ -1026,7 +1026,7 @@ Others
 Others
 * Update dependency apple/swift-argument-parser to from: "1.6.1" by @renovate[bot] in https://github.com/element-hq/element-x-ios/pull/4278
 * Update Element Call to the actual release of 0.13.0. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4279
-* Add a few more labels when sending a rageshake. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4284
+* Add a few more labels when sending a bug report. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4284
 * Update the SDK. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4286
 * Update Compound and add some new snapshot tests. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4311
 * FF for enabling share pos and defaults to `false` by @Velin92 in https://github.com/element-hq/element-x-ios/pull/4312
@@ -1055,7 +1055,7 @@ Others
 Others
 * Update dependency apple/swift-argument-parser to from: "1.6.1" by @renovate in https://github.com/element-hq/element-x-ios/pull/4278
 * Update Element Call to the actual release of 0.13.0. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4279
-* Add a few more labels when sending a rageshake. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4284
+* Add a few more labels when sending a bug report. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4284
 * Update the SDK. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4286
 
 
@@ -1082,7 +1082,7 @@ Others
 * Attempt to fix message composer layout crashes when running as an iPad app on MacOS by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/4264
 
 ⚠️ API Changes
-* Support runtime customisation of the rageshake URL. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4267
+* Support runtime customisation of the bug report URL. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/4267
 
 🗣 Translations
 * Translations update by @RiotRobot in https://github.com/element-hq/element-x-ios/pull/4240
@@ -1526,7 +1526,7 @@ Others
 * Bump the RustSDK to v25.03.31 by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/3964
 * Updated EC to 0.9.0 by @Velin92 in https://github.com/element-hq/element-x-ios/pull/3962
 * Allow overriding the bug report app ID and analytics cookies URL. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/3969
-* Add the build number to rageshakes. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/3978
+* Add the build number to bug reports. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/3978
 * Add a Compound hook. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/3979
 * Fix UI test toggle tapping after compound accessibility change. by @stefanceriu in https://github.com/element-hq/element-x-ios/pull/3985
 * Add support URLs to the app setting overrides. by @pixlwave in https://github.com/element-hq/element-x-ios/pull/3987
@@ -2752,7 +2752,7 @@ No significant changes.
 Others
 
 - Add a flag for Forks to disable hidden profiles for ignored users ([#2892](https://github.com/element-hq/element-x-ios/pull/2892))
-- Rageshake | Add device public curve25519 and ed25519 keys info to rageshake. ([#2550](https://github.com/element-hq/element-x-ios/issues/2550))
+- Bug report | Add device public curve25519 and ed25519 keys info to bug report. ([#2550](https://github.com/element-hq/element-x-ios/issues/2550))
 
 ## Changes in 1.6.8 (2024-05-17)
 
@@ -3221,7 +3221,7 @@ No significant changes.
 - Added the user suggestions view when trying to mention a user (but it doesn't react to tap yet). ([#1826](https://github.com/vector-im/element-x-ios/issues/1826))
 - @room mention pill, and own mentions are red. ([#1829](https://github.com/vector-im/element-x-ios/issues/1829))
 - Implement /me ([#1841](https://github.com/vector-im/element-x-ios/issues/1841))
-- Report rust tracing configuration filter in rageshakes ([#1861](https://github.com/vector-im/element-x-ios/issues/1861))
+- Report rust tracing configuration filter in bug reports ([#1861](https://github.com/vector-im/element-x-ios/issues/1861))
 
 🙌 Improvements
 
@@ -3948,7 +3948,7 @@ Others
 
 ✨ Features
 
-- Implement rageshake service. ([#23](https://github.com/vector-im/element-x-ios/issues/23))
+- Implement bug report service. ([#23](https://github.com/vector-im/element-x-ios/issues/23))
 - Add filtering for rooms by name. ([#26](https://github.com/vector-im/element-x-ios/issues/26))
 - Settings screen minimal implementation. ([#37](https://github.com/vector-im/element-x-ios/issues/37))
 - Perform password login using the Rust authentication service. ([#40](https://github.com/vector-im/element-x-ios/issues/40))

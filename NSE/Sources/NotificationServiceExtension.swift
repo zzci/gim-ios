@@ -66,7 +66,6 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
             Self.targetConfiguration = Target.nse.configure(logLevel: settings.logLevel,
                                                             traceLogPacks: settings.traceLogPacks,
                                                             sentryURL: nil,
-                                                            rageshakeURL: settings.bugReportRageshakeURL,
                                                             appHooks: appHooks)
         }
         

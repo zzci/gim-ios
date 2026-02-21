@@ -10,7 +10,6 @@ import SwiftUI
 
 class UnitTestsAppCoordinator: AppCoordinatorProtocol {
     private let targetConfiguration: Target.ConfigurationResult
-    static let targetRageshakeURL = RemotePreference<RageshakeConfiguration>(.url("bugs.example.com/submit"))
     static let targetAppHooks = AppHooks()
     
     let windowManager: SecureWindowManagerProtocol
@@ -36,7 +35,6 @@ class UnitTestsAppCoordinator: AppCoordinatorProtocol {
         targetConfiguration = Target.tests.configure(logLevel: .info,
                                                      traceLogPacks: [],
                                                      sentryURL: nil,
-                                                     rageshakeURL: Self.targetRageshakeURL,
                                                      appHooks: Self.targetAppHooks)
     }
     

@@ -6,7 +6,6 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Combine
 import Foundation
 import MatrixRustSDK
 
@@ -42,7 +41,6 @@ enum Target: String {
     func configure(logLevel: LogLevel,
                    traceLogPacks: Set<TraceLogPack>,
                    sentryURL: URL?,
-                   rageshakeURL: RemotePreference<RageshakeConfiguration>,
                    appHooks: AppHooks) -> ConfigurationResult {
         let tracingConfiguration = Tracing.buildConfiguration(logLevel: logLevel,
                                                               traceLogPacks: traceLogPacks,
@@ -62,21 +60,12 @@ enum Target: String {
         
         MXLog.configure(currentTarget: rawValue)
         
-        let hookCancellable = rageshakeURL.publisher
-            .sink { _ in
-                appHooks.tracingHook.update(tracingConfiguration, with: rageshakeURL)
-            }
+        appHooks.tracingHook.update(tracingConfiguration)
         
-        return ConfigurationResult(hookCancellable: hookCancellable)
+        return ConfigurationResult()
     }
     
     /// The result of calling ``configure(logLevel:traceLogPacks:sentryURL:)``.
     /// This must be stored - see the docs on the configure method to learn more.
-    struct ConfigurationResult {
-        private let hookCancellable: AnyCancellable
-        
-        init(hookCancellable: AnyCancellable) {
-            self.hookCancellable = hookCancellable
-        }
-    }
+    struct ConfigurationResult { }
 }

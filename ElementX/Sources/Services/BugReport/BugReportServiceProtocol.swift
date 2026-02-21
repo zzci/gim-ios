@@ -23,11 +23,7 @@ struct BugReport: Equatable {
 }
 
 struct SubmitBugReportResponse: Decodable {
-    var reportURL: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case reportURL = "report_url"
-    }
+    var eventID: String?
 }
 
 enum BugReportServiceError: LocalizedError {

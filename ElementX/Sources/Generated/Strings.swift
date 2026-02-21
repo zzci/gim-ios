@@ -1146,10 +1146,6 @@ internal enum L10n {
   internal static func notificationUnreadNotifiedMessagesInRoomRooms(_ p1: Int) -> String {
     return L10n.tr("Localizable", "notification_unread_notified_messages_in_room_rooms", p1)
   }
-  /// Rageshake to report bug
-  internal static var preferenceRageshake: String { return L10n.tr("Localizable", "preference_rageshake") }
-  /// You seem to be shaking the phone in frustration. Would you like to open the bug report screen?
-  internal static var rageshakeDetectionDialogContent: String { return L10n.tr("Localizable", "rageshake_detection_dialog_content") }
   /// Add attachment
   internal static var richTextEditorA11yAddAttachment: String { return L10n.tr("Localizable", "rich_text_editor_a11y_add_attachment") }
   /// Toggle bullet list
@@ -3261,10 +3257,6 @@ internal enum L10n {
   internal static var sessionVerificationBannerMessage: String { return L10n.tr("Localizable", "session_verification_banner_message") }
   /// Verify it’s you
   internal static var sessionVerificationBannerTitle: String { return L10n.tr("Localizable", "session_verification_banner_title") }
-  /// Rageshake
-  internal static var settingsRageshake: String { return L10n.tr("Localizable", "settings_rageshake") }
-  /// Detection threshold
-  internal static var settingsRageshakeDetectionThreshold: String { return L10n.tr("Localizable", "settings_rageshake_detection_threshold") }
   /// Version: %1$@ (%2$@)
   internal static func settingsVersionNumber(_ p1: Any, _ p2: Any) -> String {
     return L10n.tr("Localizable", "settings_version_number", String(describing: p1), String(describing: p2))

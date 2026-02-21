@@ -11,7 +11,7 @@ import MatrixRustSDK
 
 enum ExtensionLogger {
     /// Memory formatter, uses exact 2 fraction digits and no grouping
-    private static var numberFormatter: NumberFormatter {
+    private static let numberFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.alwaysShowsDecimalSeparator = true
         formatter.decimalSeparator = "."
@@ -19,7 +19,7 @@ enum ExtensionLogger {
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = 2
         return formatter
-    }
+    }()
 
     private static var formattedMemoryAvailable: String {
         let freeBytes = os_proc_available_memory()

@@ -16,7 +16,6 @@ protocol CommonSettingsProtocol: AnyObject {
     
     var logLevel: LogLevel { get }
     var traceLogPacks: Set<TraceLogPack> { get }
-    var bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> { get }
     
     var enableOnlySignedDeviceIsolationMode: Bool { get }
     var enableKeyShareOnInvite: Bool { get }
@@ -293,7 +292,6 @@ final class AppSettings {
     
     // MARK: - Bug report
     
-    let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(.disabled)
     // swiftlint:disable:next force_unwrapping
     let bugReportSentryURL: URL? = URL(string: "https://4d5bbbd5fbf8fd0228af5eb5ea794853@o4510919240318976.ingest.de.sentry.io/4510919242088528")
     // swiftlint:disable:next force_unwrapping

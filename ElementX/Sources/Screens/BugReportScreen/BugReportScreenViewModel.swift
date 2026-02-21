@@ -112,7 +112,7 @@ class BugReportScreenViewModel: BugReportScreenViewModelType, BugReportScreenVie
         switch await bugReportService.submitBugReport(bugReport,
                                                       progressListener: progressSubject) {
         case .success(let response):
-            MXLog.info("Submission uploaded: \(response.reportURL ?? "The server didn't generate a report URL")")
+            MXLog.info("Submission uploaded to Sentry: \(response.eventID ?? "Missing event ID")")
             actionsSubject.send(.submitFinished)
         case .failure(let error):
             MXLog.error("Submission failed: \(error)")

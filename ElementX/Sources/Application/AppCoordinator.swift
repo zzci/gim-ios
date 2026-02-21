@@ -78,7 +78,6 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         targetConfiguration = Target.mainApp.configure(logLevel: appSettings.logLevel,
                                                        traceLogPacks: appSettings.traceLogPacks,
                                                        sentryURL: appSettings.bugReportSentryRustURL,
-                                                       rageshakeURL: appSettings.bugReportRageshakeURL,
                                                        appHooks: appHooks)
         
         let appName = InfoPlistReader.main.bundleDisplayName
@@ -126,10 +125,10 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         notificationManager = NotificationManager(notificationCenter: UNUserNotificationCenter.current(),
                                                   appSettings: appSettings)
         
-        bugReportService = BugReportService(rageshakeURLPublisher: appSettings.bugReportRageshakeURL.publisher,
-                                            applicationID: appSettings.bugReportApplicationID,
+        bugReportService = BugReportService(applicationID: appSettings.bugReportApplicationID,
                                             sdkGitSHA: sdkGitSha(),
-                                            appHooks: appHooks)
+                                            appHooks: appHooks,
+                                            sentryEnabled: appSettings.bugReportSentryURL != nil)
         
         Self.setupSentry(bugReportService: bugReportService, appSettings: appSettings)
         

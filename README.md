@@ -37,7 +37,7 @@ Please refer to the [setting up a development environment](CONTRIBUTING.md#setti
 
 When you are experiencing an issue on Element X iOS, please first search in [GitHub issues](https://github.com/element-hq/element-x-ios/issues)
 and then in [#element-x-ios:matrix.org](https://matrix.to/#/#element-x-ios:matrix.org).
-If after your research you still have a question, ask at [#element-x-ios:matrix.org](https://matrix.to/#/#element-x-ios:matrix.org). Otherwise feel free to create a GitHub issue if you encounter a bug or a crash, by explaining clearly in detail what happened. You can also perform bug reporting (Rageshake) from the Element application by going to the application settings. This is especially recommended when you encounter a crash.
+If after your research you still have a question, ask at [#element-x-ios:matrix.org](https://matrix.to/#/#element-x-ios:matrix.org). Otherwise feel free to create a GitHub issue if you encounter a bug or a crash, by explaining clearly in detail what happened. You can also perform bug reporting (Bug report) from the Element application by going to the application settings. This is especially recommended when you encounter a crash.
 
 ## Forking
 

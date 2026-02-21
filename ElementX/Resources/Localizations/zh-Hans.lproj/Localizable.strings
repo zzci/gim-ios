@@ -475,8 +475,6 @@
 "notification_unread_notified_messages_and_invitation" = "%1$@ 和 %2$@";
 "notification_unread_notified_messages_in_room" = "%2$@ 中的 %1$@";
 "notification_unread_notified_messages_in_room_and_invitation" = "在 %2$@ 和 %3$@ 中的 %1$@";
-"preference_rageshake" = "摇一摇以报错";
-"rageshake_detection_dialog_content" = "你似乎愤怒地摇晃了手机。想要打开 Bug 报告页面吗？";
 "rich_text_editor_bullet_list" = "切换符号列表";
 "rich_text_editor_close_formatting_options" = "取消并关闭文本格式";
 "rich_text_editor_code_block" = "切换代码块";
@@ -1278,8 +1276,6 @@
 "screen_view_location_title" = "位置";
 "session_verification_banner_message" = "您似乎正在使用新设备。使用另一台设备进行验证以访问您的加密消息。";
 "session_verification_banner_title" = "验证是你本人";
-"settings_rageshake" = "摇一摇";
-"settings_rageshake_detection_threshold" = "检测阈值";
 "settings_version_number" = "版本：%1$@ (%2$@)";
 "state_event_avatar_changed_too" = "(头像也更改了）";
 "state_event_avatar_url_changed" = "%1$@ 更换了头像";

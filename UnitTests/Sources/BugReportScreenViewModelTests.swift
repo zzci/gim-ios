@@ -61,7 +61,7 @@ class BugReportScreenViewModelTests: XCTestCase {
         let mockService = BugReportServiceMock()
         mockService.submitBugReportProgressListenerClosure = { _, _ in
             await Task.yield()
-            return .success(SubmitBugReportResponse(reportURL: "https://test.test"))
+            return .success(SubmitBugReportResponse(eventID: "test-event-id"))
         }
         
         let clientProxy = ClientProxyMock(.init(userID: "@mock.client.com", deviceID: "ABCDEFGH"))

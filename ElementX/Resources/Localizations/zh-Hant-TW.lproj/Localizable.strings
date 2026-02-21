@@ -475,8 +475,6 @@
 "notification_unread_notified_messages_and_invitation" = "%1$@ 與 %2$@";
 "notification_unread_notified_messages_in_room" = "%1$@ 在 %2$@ 中";
 "notification_unread_notified_messages_in_room_and_invitation" = "%1$@ 在 %2$@ 與 %3$@ 中";
-"preference_rageshake" = "憤怒搖晃以回報臭蟲";
-"rageshake_detection_dialog_content" = "您似乎正在沮喪地搖晃手機。您要開啟臭蟲回報畫面嗎？";
 "rich_text_editor_bullet_list" = "切換項目編號";
 "rich_text_editor_close_formatting_options" = "取消並關閉關閉文字格式化";
 "rich_text_editor_code_block" = "切換程式碼區塊";
@@ -1278,8 +1276,6 @@
 "screen_view_location_title" = "位置";
 "session_verification_banner_message" = "您似乎正在使用新的裝置。請使用另一個裝置進行驗證，以存取您的加密訊息。";
 "session_verification_banner_title" = "驗證這是您本人";
-"settings_rageshake" = "憤怒搖晃";
-"settings_rageshake_detection_threshold" = "偵測閾值";
 "settings_version_number" = "版本：%1$@（%2$@）";
 "state_event_avatar_changed_too" = "（大頭照也變更了）";
 "state_event_avatar_url_changed" = "%1$@ 變更了他的大頭貼";

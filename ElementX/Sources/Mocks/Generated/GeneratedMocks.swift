@@ -1987,12 +1987,12 @@ class BugReportServiceMock: BugReportServiceProtocol, @unchecked Sendable {
         get { return underlyingIsEnabled }
         set(value) { underlyingIsEnabled = value }
     }
-    var underlyingIsEnabled: Bool!
+    var underlyingIsEnabled: Bool! = true
     var crashedLastRun: Bool {
         get { return underlyingCrashedLastRun }
         set(value) { underlyingCrashedLastRun = value }
     }
-    var underlyingCrashedLastRun: Bool!
+    var underlyingCrashedLastRun: Bool! = false
     var lastCrashEventID: String?
 
     //MARK: - submitBugReport

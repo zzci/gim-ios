@@ -292,7 +292,7 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 | Service | Purpose | Rust SDK Wrapper? |
 |---------|---------|:-:|
 | **Analytics** | PostHog telemetry | No |
-| **BugReport** | Rageshake crash reports | No |
+| **BugReport** | Bug report crash reports | No |
 | **LinkMetadata** | URL preview metadata | No |
 | **Users** | User profile management | Yes |
 | **RoomDirectorySearch** | Public room search | Yes |
@@ -304,7 +304,7 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 - **16 services** directly wrap Rust SDK types; **12** are platform-specific
 - All services use `@Automockable` protocol for Sourcery mock generation
 - Services are injected via `ServiceLocator` pattern
-- **Potentially dead code:** BugReport (rageshake URL is localhost), LinkMetadata (minimal usage)
+- **Potentially dead code:** BugReport (bug report URL is localhost), LinkMetadata (minimal usage)
 
 ---
 
@@ -567,7 +567,7 @@ com.apple.developer.associated-domains:
 | # | Issue | File |
 |---|-------|------|
 | 9 | `call.element.io` in known hosts | `AppRoutes.swift:138` |
-| 10 | Rageshake URL placeholder | `Secrets.swift:6` |
+| 10 | Bug report URL placeholder | `Secrets.swift:6` |
 | 11 | Analytics terms URL → element.io | `AppSettings.swift:322` |
 | 12 | Element web hosts hardcoded | `AppSettings.swift:228` |
 | 13 | `mobile.element.io` account provisioning | `AppSettings.swift:230` |
@@ -624,7 +624,7 @@ com.apple.developer.associated-domains:
 
 | Module | Evidence | Recommendation |
 |--------|----------|----------------|
-| BugReport service | Rageshake URL is localhost | Remove or configure for g.im |
+| BugReport service | Bug report URL is localhost | Remove or configure for g.im |
 | LinkMetadata service | Minimal usage | Evaluate necessity |
 | Dynamic package | 0 imports | Remove from dependencies |
 
@@ -645,7 +645,7 @@ com.apple.developer.associated-domains:
 1. **Remove all Element infrastructure endpoints** from production code
    - Update PostHog host/key to self-hosted or disable
    - Update Sentry DSNs to self-hosted or disable
-   - Change rageshake URL to GIM server
+   - Change bug report URL to GIM server
    - Remove Element Pro App Store link
 
 2. **Update Associated Domains**
