@@ -18,3 +18,12 @@
 // MARK: - Screen capture protection
 
 "screen_recording_protection" = "This content is hidden while screen recording is active.";
+
+// MARK: - GIM Branding Overrides
+
+"call_invalid_audio_device_bluetooth_devices_disabled" = "GIM Call does not support using Bluetooth audio devices in this Android version. Please select a different audio device.";
+"screen_advanced_settings_element_call_base_url" = "Custom GIM Call base URL";
+"screen_advanced_settings_element_call_base_url_description" = "Set a custom base URL for GIM Call.";
+"screen_change_server_error_element_pro_required_message" = "The GIM Pro app is required on %1$@. Please download it from the store.";
+"screen_change_server_error_element_pro_required_title" = "GIM Pro required";
+"screen_room_timeline_legacy_call" = "Unsupported call. Ask if the caller can use the new GIM app.";

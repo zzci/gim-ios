@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Element X iOS is a Matrix messaging client built with SwiftUI, using the Matrix Rust SDK via Swift bindings. The Xcode project is generated from `project.yml` using XcodeGen — never edit `ElementX.xcodeproj` directly.
+GIM is a Matrix messaging client built with SwiftUI, using the Matrix Rust SDK via Swift bindings. It is a fork of Element X iOS, rebranded for the GIM platform. The Xcode project is generated from `project.yml` using XcodeGen — never edit `ElementX.xcodeproj` directly.
 
 ## Build & Development
 

@@ -1,5 +1,5 @@
 # Reporting a Vulnerability
 
-**If you've found a security vulnerability in Element software, please report it to security@element.io.**
+**If you've found a security vulnerability in GIM, please report it to security@g.im.**
 
-For more information on our security disclosure policy, visit https://element.io/security/security-disclosure-policy.
+Please include as much detail as possible to help us understand and resolve the issue quickly.
