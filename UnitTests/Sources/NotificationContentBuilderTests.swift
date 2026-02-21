@@ -5,7 +5,6 @@
 // Please see LICENSE files in the repository root for full details.
 //
 
-import Dynamic
 @testable import ElementX
 import MatrixRustSDK
 import XCTest
@@ -14,7 +13,7 @@ final class NotificationContentBuilderTests: XCTestCase {
     var notificationContentBuilder: NotificationContentBuilder!
     var mediaProvider: MediaProviderMock!
     var notificationContent: UNMutableNotificationContent!
-    
+
     override func setUp() {
         notificationContent = .init()
         let stringBuilder = RoomMessageEventStringBuilder(attributedStringBuilder: AttributedStringBuilder(mentionBuilder: PlainMentionBuilder()),
@@ -24,7 +23,25 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                 notificationSoundName: UNNotificationSoundName("message.caf"),
                                                                 userSession: NSEUserSessionMock(.init()))
     }
-    
+
+    // MARK: - Helpers
+
+    /// Extracts the private `communicationContext` from a `UNMutableNotificationContent` using the ObjC runtime.
+    private func communicationContext(from content: UNMutableNotificationContent) -> NSObject? {
+        content.value(forKey: "communicationContext") as? NSObject
+    }
+
+    /// Extracts the `displayName` from a communication context object.
+    private func displayName(from context: NSObject?) -> String? {
+        context?.value(forKey: "displayName") as? String
+    }
+
+    /// Extracts the sender's `displayName` from a communication context object.
+    private func senderDisplayName(from context: NSObject?) -> String? {
+        guard let sender = context?.value(forKey: "sender") as? NSObject else { return nil }
+        return sender.value(forKey: "displayName") as? String
+    }
+
     func testDMMessageNotification() async {
         let notificationItem = NotificationItemProxyMock(.init(roomID: "!test:matrix.org",
                                                                receiverID: "@bob:matrix.org",
@@ -37,11 +54,11 @@ final class NotificationContentBuilderTests: XCTestCase {
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
+
+        let context = communicationContext(from: notificationContent)
         // Checking if nil without using asObject always fails
-        XCTAssertNil(communicationContext.displayName.asObject)
-        XCTAssertEqual(communicationContext.sender.displayName, "Alice")
+        XCTAssertNil(displayName(from: context))
+        XCTAssertEqual(senderDisplayName(from: context), "Alice")
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNil(notificationContent.threadRootEventID)
@@ -50,7 +67,7 @@ final class NotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(notificationContent.threadIdentifier, "bob:matrix.org!test:matrix.org")
         XCTAssertEqual(notificationContent.attachments, [])
     }
-    
+
     func testDMMessageNotificationWithMention() async {
         let notificationItem = NotificationItemProxyMock(.init(roomID: "!test:matrix.org",
                                                                receiverID: "@bob:matrix.org",
@@ -61,15 +78,15 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isRoomPrivate: true,
                                                                isNoisy: true,
                                                                hasMention: true))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
+
+        let context = communicationContext(from: notificationContent)
         // Checking if nil without using asObject always fails
-        XCTAssertNil(communicationContext.displayName.asObject)
-        XCTAssertEqual(communicationContext.sender.displayName, L10n.notificationSenderMentionReply("Alice"))
+        XCTAssertNil(displayName(from: context))
+        XCTAssertEqual(senderDisplayName(from: context), L10n.notificationSenderMentionReply("Alice"))
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNil(notificationContent.threadRootEventID)
@@ -78,7 +95,7 @@ final class NotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(notificationContent.threadIdentifier, "bob:matrix.org!test:matrix.org")
         XCTAssertEqual(notificationContent.attachments, [])
     }
-    
+
     func testDMMessageNotificationWithThread() async {
         let notificationItem = NotificationItemProxyMock(.init(roomID: "!test:matrix.org",
                                                                receiverID: "@bob:matrix.org",
@@ -90,14 +107,14 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isNoisy: true,
                                                                hasMention: false,
                                                                threadRootEventID: "thread"))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        XCTAssertEqual(communicationContext.displayName, L10n.commonThread)
-        XCTAssertEqual(communicationContext.sender.displayName, "Alice")
+
+        let context = communicationContext(from: notificationContent)
+        XCTAssertEqual(displayName(from: context), L10n.commonThread)
+        XCTAssertEqual(senderDisplayName(from: context), "Alice")
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNotNil(notificationContent.threadRootEventID)
@@ -106,7 +123,7 @@ final class NotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(notificationContent.threadIdentifier, "bob:matrix.org!test:matrix.orgthread")
         XCTAssertEqual(notificationContent.attachments, [])
     }
-    
+
     func testDMMessageNotificationWithThreadAndMention() async {
         let notificationItem = NotificationItemProxyMock(.init(roomID: "!test:matrix.org",
                                                                receiverID: "@bob:matrix.org",
@@ -118,14 +135,14 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isNoisy: true,
                                                                hasMention: true,
                                                                threadRootEventID: "thread"))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        XCTAssertEqual(communicationContext.displayName, L10n.commonThread)
-        XCTAssertEqual(communicationContext.sender.displayName, L10n.notificationSenderMentionReply("Alice"))
+
+        let context = communicationContext(from: notificationContent)
+        XCTAssertEqual(displayName(from: context), L10n.commonThread)
+        XCTAssertEqual(senderDisplayName(from: context), L10n.notificationSenderMentionReply("Alice"))
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNotNil(notificationContent.threadRootEventID)
@@ -144,14 +161,14 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isRoomDirect: false,
                                                                isRoomPrivate: false,
                                                                isNoisy: false))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        
-        XCTAssertEqual(communicationContext.displayName, "General")
-        XCTAssertEqual(communicationContext.sender.displayName, "Alice")
+        let context = communicationContext(from: notificationContent)
+
+        XCTAssertEqual(displayName(from: context), "General")
+        XCTAssertEqual(senderDisplayName(from: context), "Alice")
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNil(notificationContent.threadRootEventID)
@@ -160,7 +177,7 @@ final class NotificationContentBuilderTests: XCTestCase {
         XCTAssertEqual(notificationContent.threadIdentifier, "bob:matrix.org!testroom:matrix.org")
         XCTAssertEqual(notificationContent.attachments, [])
     }
-    
+
     func testRoomMessageNotificationWithMention() async {
         let notificationItem = NotificationItemProxyMock(.init(roomID: "!testroom:matrix.org",
                                                                receiverID: "@bob:matrix.org",
@@ -171,14 +188,14 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isRoomPrivate: false,
                                                                isNoisy: true,
                                                                hasMention: true))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        XCTAssertEqual(communicationContext.displayName, "General")
-        XCTAssertEqual(communicationContext.sender.displayName, L10n.notificationSenderMentionReply("Alice"))
+
+        let context = communicationContext(from: notificationContent)
+        XCTAssertEqual(displayName(from: context), "General")
+        XCTAssertEqual(senderDisplayName(from: context), L10n.notificationSenderMentionReply("Alice"))
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNil(notificationContent.threadRootEventID)
@@ -197,14 +214,14 @@ final class NotificationContentBuilderTests: XCTestCase {
                                                                isRoomPrivate: false,
                                                                isNoisy: false,
                                                                threadRootEventID: "thread123"))
-        
+
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        XCTAssertEqual(communicationContext.displayName, L10n.notificationThreadInRoom("General"))
-        XCTAssertEqual(communicationContext.sender.displayName, "Alice")
+
+        let context = communicationContext(from: notificationContent)
+        XCTAssertEqual(displayName(from: context), L10n.notificationThreadInRoom("General"))
+        XCTAssertEqual(senderDisplayName(from: context), "Alice")
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNotNil(notificationContent.threadRootEventID)
@@ -227,9 +244,9 @@ final class NotificationContentBuilderTests: XCTestCase {
         await notificationContentBuilder.process(notificationContent: &notificationContent,
                                                  notificationItem: notificationItem,
                                                  mediaProvider: mediaProvider)
-        let communicationContext = Dynamic(notificationContent, memberName: "communicationContext")
-        XCTAssertEqual(communicationContext.displayName, L10n.notificationThreadInRoom("General"))
-        XCTAssertEqual(communicationContext.sender.displayName, L10n.notificationSenderMentionReply("Alice"))
+        let context = communicationContext(from: notificationContent)
+        XCTAssertEqual(displayName(from: context), L10n.notificationThreadInRoom("General"))
+        XCTAssertEqual(senderDisplayName(from: context), L10n.notificationSenderMentionReply("Alice"))
         XCTAssertEqual(notificationContent.body, "Hello world!")
         XCTAssertEqual(notificationContent.categoryIdentifier, NotificationConstants.Category.message)
         XCTAssertNotNil(notificationContent.threadRootEventID)

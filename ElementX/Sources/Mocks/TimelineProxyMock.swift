@@ -26,6 +26,7 @@ extension TimelineProxyMock {
         createPollQuestionAnswersPollKindReturnValue = .success(())
         editPollOriginalQuestionAnswersPollKindReturnValue = .success(())
         
+        #if DEBUG
         if configuration.isAutoUpdating {
             underlyingTimelineItemProvider = AutoUpdatingTimelineItemProviderMock()
         } else {
@@ -34,5 +35,11 @@ extension TimelineProxyMock {
             timelineItemProvider.underlyingMembershipChangePublisher = PassthroughSubject().eraseToAnyPublisher()
             underlyingTimelineItemProvider = timelineItemProvider
         }
+        #else
+        let timelineItemProvider = TimelineItemProviderMock()
+        timelineItemProvider.paginationState = .init(backward: configuration.timelineStartReached ? .endReached : .idle, forward: .endReached)
+        timelineItemProvider.underlyingMembershipChangePublisher = PassthroughSubject().eraseToAnyPublisher()
+        underlyingTimelineItemProvider = timelineItemProvider
+        #endif
     }
 }
