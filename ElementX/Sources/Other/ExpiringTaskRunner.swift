@@ -12,34 +12,30 @@ enum ExpiringTaskRunnerError: Error {
     case timeout
 }
 
-actor ExpiringTaskRunner<T: Sendable> {
-    private var continuation: CheckedContinuation<T, Error>?
-    
-    private var task: () async throws -> T
-    
-    init(_ task: @escaping () async throws -> T) {
+struct ExpiringTaskRunner<T: Sendable> {
+    private var task: @Sendable () async throws -> T
+
+    init(_ task: @escaping @Sendable () async throws -> T) {
         self.task = task
     }
-    
+
     func run(timeout: Duration) async throws -> T {
-        try await withCheckedThrowingContinuation {
-            continuation = $0
-            
-            Task {
-                try? await Task.sleep(for: timeout)
-                continuation?.resume(with: .failure(ExpiringTaskRunnerError.timeout))
-                continuation = nil
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await task()
             }
-            
-            Task {
-                do {
-                    let result = try await task()
-                    continuation?.resume(with: .success(result))
-                } catch {
-                    continuation?.resume(with: .failure(error))
-                }
-                continuation = nil
+
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw ExpiringTaskRunnerError.timeout
             }
+
+            // The first task to complete wins; cancel the other.
+            guard let result = try await group.next() else {
+                throw ExpiringTaskRunnerError.timeout
+            }
+            group.cancelAll()
+            return result
         }
     }
 }

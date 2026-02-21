@@ -9,6 +9,7 @@
 import Combine
 import SwiftUI
 
+@MainActor
 class UserIndicatorController: ObservableObject, UserIndicatorControllerProtocol {
     private var timerCancellable: AnyCancellable?
     private var displayTimes = [String: Date]()
