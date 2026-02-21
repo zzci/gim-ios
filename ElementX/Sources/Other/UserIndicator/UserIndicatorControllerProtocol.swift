@@ -9,6 +9,7 @@
 import UIKit
 
 // sourcery: AutoMockable
+@MainActor
 protocol UserIndicatorControllerProtocol: CoordinatorProtocol {
     func submitIndicator(_ indicator: UserIndicator, delay: Duration?)
     func retractIndicatorWithId(_ id: String)

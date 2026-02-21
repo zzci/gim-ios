@@ -14,6 +14,7 @@ import Sentry
 import SwiftUI
 import Version
 
+@MainActor
 class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDelegate, NotificationManagerDelegate, SecureWindowManagerDelegate {
     private let stateMachine: AppCoordinatorStateMachine
     private let navigationRootCoordinator: NavigationRootCoordinator
@@ -97,9 +98,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         ServiceLocator.shared.register(userIndicatorController: UserIndicatorController())
         
-        let posthogAnalyticsClient = PostHogAnalyticsClient()
-        posthogAnalyticsClient.updateSuperProperties(AnalyticsEvent.SuperProperties(appPlatform: .EXI, cryptoSDK: .Rust, cryptoSDKVersion: sdkGitSha()))
-        let analyticsService = AnalyticsService(client: posthogAnalyticsClient, appSettings: appSettings)
+        let analyticsClient = NoopAnalyticsClient()
+        let analyticsService = AnalyticsService(client: analyticsClient, appSettings: appSettings)
         ServiceLocator.shared.register(analytics: analyticsService)
         
         navigationRootCoordinator = NavigationRootCoordinator()
@@ -160,6 +160,14 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
         appSettings.$analyticsConsentState
             .dropFirst() // Called above before configuring the ServiceLocator
+            .sink { [bugReportService] _ in
+                Self.setupSentry(bugReportService: bugReportService, appSettings: appSettings)
+            }
+            .store(in: &cancellables)
+
+        // Re-evaluate Sentry when the master switch changes.
+        appSettings.$sentryEnabled
+            .dropFirst()
             .sink { [bugReportService] _ in
                 Self.setupSentry(bugReportService: bugReportService, appSettings: appSettings)
             }
@@ -470,13 +478,14 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     /// Manually cleans up any files in the app group's `tmp` directory.
     ///
-    /// **Note:** If there is a single file we consider it to be an active share payload and ignore it.
+    /// Files older than `staleThreshold` are always removed. Recent files are kept only when there
+    /// is a single item (likely a pending share payload that is yet to be processed).
     private func clearTemporaryDirectories() {
         // First get rid of everything in the App's temporary directory
         do {
             let fileURLs = try FileManager.default.contentsOfDirectory(at: URL.temporaryDirectory, includingPropertiesForKeys: nil, options: [])
-            
-            fileURLs.forEach { url in
+
+            for url in fileURLs {
                 do {
                     try FileManager.default.removeItem(at: url)
                 } catch {
@@ -486,16 +495,27 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         } catch {
             MXLog.warning("Failed to enumerate temporary directory: \(error)")
         }
-        
+
         // Manual clean to handle the potential case where the app crashes before moving a shared file.
+        let staleThreshold: TimeInterval = 3600 // 1 hour
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(at: URL.appGroupTemporaryDirectory, includingPropertiesForKeys: nil, options: [])
-            
-            guard fileURLs.count > 1 else {
-                return // If there is only a single item in here, there's likely a pending share payload that is yet to be processed.
-            }
-            
+            let fileURLs = try FileManager.default.contentsOfDirectory(at: URL.appGroupTemporaryDirectory,
+                                                                        includingPropertiesForKeys: [.contentModificationDateKey],
+                                                                        options: [])
+
             for url in fileURLs {
+                let isStale: Bool
+                if let modDate = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate {
+                    isStale = Date().timeIntervalSince(modDate) > staleThreshold
+                } else {
+                    isStale = true
+                }
+
+                // Keep a single recent file as it may be a pending share payload.
+                if !isStale, fileURLs.count == 1 {
+                    continue
+                }
+
                 do {
                     try FileManager.default.removeItem(at: url)
                 } catch {
@@ -873,11 +893,30 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         }
     }
     
+    /// Tracks whether SentrySDK.start has been called to prevent duplicate initialization.
+    private static var isSentryStarted = false
+
     private static func setupSentry(bugReportService: BugReportServiceProtocol, appSettings: AppSettings) {
-        guard let bugReportSentryURL = appSettings.bugReportSentryURL else { return }
-        
+        // SENTRY-001: Hard off — if the master switch is disabled, tear down Sentry completely.
+        guard appSettings.sentryEnabled else {
+            teardownSentry()
+            MXLog.info("Sentry disabled by user preference (hard off)")
+            return
+        }
+
+        guard let bugReportSentryURL = appSettings.bugReportSentryURL else {
+            MXLog.info("Sentry not configured: no DSN URL")
+            return
+        }
+
+        // SENTRY-003: Idempotency — skip if already started.
+        guard !isSentryStarted else {
+            MXLog.info("Sentry already initialized, skipping duplicate start")
+            return
+        }
+
         let options: Options = .init()
-        
+
         #if DEBUG
         options.enabled = false
         #else
@@ -885,7 +924,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         #endif
 
         options.dsn = bugReportSentryURL.absoluteString
-        
+
         // Matches android, at least for now.
         switch AppSettings.appBuildType {
         case .debug:
@@ -895,32 +934,42 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         case .release:
             options.environment = "RELEASE"
         }
-        
+
         // Sentry swizzling shows up quite often as the heaviest stack trace when profiling
         // We don't need any of the features it powers (see docs)
         options.enableSwizzling = false
-        
+
         // WatchdogTermination is currently the top issue but we've had zero complaints
         // so it might very well just all be false positives
         options.enableWatchdogTerminationTracking = false
-        
+
         // Disabled as it seems to report a lot of false positives
         options.enableAppHangTracking = false
-        
+
         // Most of the network requests are made Rust side, this is useless
         options.enableNetworkBreadcrumbs = false
-        
+
         // Doesn't seem to work at all well with SwiftUI
         options.enableAutoBreadcrumbTracking = false
-        
+
         // Experimental. Stitches stack traces of asynchronous code together
         options.swiftAsyncStacktraces = true
-        
-        // Uniform sample rate: 1.0 captures 100% of transactions
-        // In Production you will probably want a smaller number such as 0.5 for 50%
-        options.sampleRate = 1.0
-        options.tracesSampleRate = 1.0
-        options.configureProfiling = { $0.sessionSampleRate = 1.0 }
+
+        // SENTRY-004: Per-environment sampling rates.
+        switch AppSettings.appBuildType {
+        case .debug:
+            options.sampleRate = 1.0
+            options.tracesSampleRate = 1.0
+            options.configureProfiling = { $0.sessionSampleRate = 1.0 }
+        case .nightly:
+            options.sampleRate = 1.0
+            options.tracesSampleRate = 0.5
+            options.configureProfiling = { $0.sessionSampleRate = 0.5 }
+        case .release:
+            options.sampleRate = 0.5
+            options.tracesSampleRate = 0.2
+            options.configureProfiling = { $0.sessionSampleRate = 0.1 }
+        }
 
         // This callback is only executed once during the entire run of the program to avoid
         // multiple callbacks if there are multiple crash events to send (see method documentation)
@@ -928,15 +977,20 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             MXLog.error("Sentry detected a crash in the previous run: \(event.eventId.sentryIdString)")
             bugReportService.lastCrashEventID = event.eventId.sentryIdString
         }
-        
+
         SentrySDK.start(options: options) // Swift
         enableSentryLogging(enabled: options.enabled) // Rust
-        
-        MXLog.info("Sentry configured (enabled: \(options.enabled))")
+        isSentryStarted = true
+
+        MXLog.info("Sentry configured (enabled: \(options.enabled), environment: \(options.environment ?? "unknown"))")
     }
-    
-    private func teardownSentry() {
+
+    /// Tears down Sentry, safe to call even if never started (SENTRY-003 idempotency).
+    private static func teardownSentry() {
+        guard isSentryStarted else { return }
         SentrySDK.close()
+        enableSentryLogging(enabled: false)
+        isSentryStarted = false
         MXLog.info("SentrySDK stopped")
     }
     
@@ -988,11 +1042,9 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             // Attempt to stop the background task sync loop cleanly, only if the app not already running
             return
         }
-        
-        MainActor.assumeIsolated {
-            userSession?.clientProxy.stopSync(completion: completion)
-            clientProxyObserver = nil
-        }
+
+        userSession?.clientProxy.stopSync(completion: completion)
+        clientProxyObserver = nil
     }
 
     private func startSync() {
@@ -1135,11 +1187,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         // This is important for the app to keep refreshing in the background
         scheduleBackgroundAppRefresh()
         
-        // We have a lot of crashes stemming here which we previously believed are caused by stopSync not being async
-        // on the client proxy side (see the comment on that method). We have now realised that will likely not fix anything but
-        // we also noticed this does not crash on the main thread, even though the whole AppCoordinator is on the Main actor.
-        // As such, we introduced a MainActor conformance on the expirationHandler but we are also assuming main actor
-        // isolated in the `stopSync` method above.
+        // The expirationHandler runs off the main actor, so we bounce back to MainActor
+        // before calling stopSync which accesses MainActor-isolated state.
         // https://sentry.tools.element.io/organizations/element/issues/4477794/
         task.expirationHandler = { @Sendable [weak self] in
             MXLog.info("Background app refresh task is about to expire.")

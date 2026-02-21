@@ -11,14 +11,6 @@ extension AccessibilityTests {
         try await performAccessibilityAudit(named: "AdvancedSettingsScreen_Previews")
     }
 
-    func testAnalyticsPromptScreen() async throws {
-        try await performAccessibilityAudit(named: "AnalyticsPromptScreen_Previews")
-    }
-
-    func testAnalyticsSettingsScreen() async throws {
-        try await performAccessibilityAudit(named: "AnalyticsSettingsScreen_Previews")
-    }
-
     func testAppLockScreen() async throws {
         try await performAccessibilityAudit(named: "AppLockScreen_Previews")
     }

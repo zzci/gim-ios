@@ -92,10 +92,10 @@ extension XCUIApplication {
         // Handle the password saving dialog
         let savePasswordButton = buttons["Save Password"]
         if savePasswordButton.waitForExistence(timeout: 10.0) {
-            // Tapping the sheet button while animating upwards fails. Wait for it to settle
-            sleep(1)
-            
-            buttons["Not Now"].tap(.center)
+            // Wait for the "Not Now" button to become hittable (the sheet animation may still be in progress)
+            let notNowButton = buttons["Not Now"]
+            XCTAssertTrue(notNowButton.waitForExistence(timeout: 5.0))
+            notNowButton.tap(.center)
         }
         
         let webConsentButton = webAuthenticationView.buttons["Continue"]

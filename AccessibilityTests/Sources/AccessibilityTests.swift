@@ -51,11 +51,12 @@ final class AccessibilityTests: XCTestCase {
     }
     
     private func performAccessibilityAuditForPreview(named name: String) {
-        // Alows us to log the name of the preview that is being tested
+        // Allows us to log the name of the preview that is being tested
         XCTContext.runActivity(named: name) { _ in
             do {
-                // We have removed `textClipped` and `contrast` for now
-                try app.performAccessibilityAudit(for: [.dynamicType, .elementDetection, .hitRegion, .sufficientElementDescription, .trait]) { issue in
+                // Audit types: .contrast is excluded as it produces too many false positives with
+                // Compound design tokens. .textClipped is included to catch truncation issues.
+                try app.performAccessibilityAudit(for: [.dynamicType, .elementDetection, .hitRegion, .sufficientElementDescription, .textClipped, .trait]) { issue in
                     // Specific tests do not need specific accessibilty audit types
                     if Self.ignoredA11yTest[name]?.isAccessibilityIssueFiltered(issue) == true {
                         return true

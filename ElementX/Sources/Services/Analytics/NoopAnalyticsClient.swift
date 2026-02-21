@@ -8,8 +8,8 @@
 
 import AnalyticsEvents
 
-/// A no-op analytics client. PostHog has been removed from GIM.
-class PostHogAnalyticsClient: AnalyticsClientProtocol {
+/// A no-op analytics client that conforms to `AnalyticsClientProtocol` but discards all events.
+class NoopAnalyticsClient: AnalyticsClientProtocol {
     private(set) var pendingUserProperties: AnalyticsEvent.UserProperties?
 
     var isRunning: Bool { false }

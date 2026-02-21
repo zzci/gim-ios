@@ -237,18 +237,18 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             MXLog.error("Room summary provider unavailable")
             return
         }
-        
+
         roomSummaryProvider.statePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 guard let self else { return }
-                
+
                 updateRoomListMode(with: state)
             }
             .store(in: &cancellables)
-        
+
         roomSummaryProvider.roomListPublisher
-            .receive(on: DispatchQueue.main)
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateRooms()
             }
@@ -293,17 +293,23 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             MXLog.error("Room summary provider unavailable")
             return
         }
-        
-        var rooms = [HomeScreenRoom]()
+
+        let summaries = roomSummaryProvider.roomListPublisher.value
         let seenInvites = appSettings.seenInvites
-        
-        for summary in roomSummaryProvider.roomListPublisher.value {
-            let room = HomeScreenRoom(summary: summary,
-                                      hideUnreadMessagesBadge: appSettings.hideUnreadMessagesBadge,
-                                      seenInvites: seenInvites)
-            rooms.append(room)
+        let hideUnreadMessagesBadge = appSettings.hideUnreadMessagesBadge
+
+        var rooms = [HomeScreenRoom]()
+        rooms.reserveCapacity(summaries.count)
+        for summary in summaries {
+            rooms.append(HomeScreenRoom(summary: summary,
+                                        hideUnreadMessagesBadge: hideUnreadMessagesBadge,
+                                        seenInvites: seenInvites))
         }
-        
+
+        guard rooms != state.rooms else {
+            return
+        }
+
         state.rooms = rooms
     }
     

@@ -308,31 +308,33 @@ struct NotificationContentBuilder {
         }
     }
 
-    @MainActor
     func getPlaceholderAvatarImageData(name: String, id: String) async -> Data? {
         // The version value is used in case the design of the placeholder is updated to force a replacement
         let prefix = "notification_placeholderV9"
-        
+
         let fileName = "\(prefix)_\(name)_\(id).png"
+
+        // Read from cache off the MainActor
         if let data = try? Data(contentsOf: URL.temporaryDirectory.appendingPathComponent(fileName)) {
             MXLog.info("Found existing notification icon placeholder")
             return data
         }
-        
+
         MXLog.info("Generating notification icon placeholder")
-        
-        let data = Avatars.generatePlaceholderAvatarImageData(name: name, id: id, size: .init(width: 50, height: 50))
-        
+
+        // ImageRenderer requires MainActor
+        let data = await Avatars.generatePlaceholderAvatarImageData(name: name, id: id, size: .init(width: 50, height: 50))
+
         if let data {
             do {
-                // cache image data
+                // Write to cache off the MainActor
                 try FileManager.default.writeDataToTemporaryDirectory(data: data, fileName: fileName)
             } catch {
                 MXLog.error("Could not store placeholder image")
                 return data
             }
         }
-        
+
         return data
     }
 }

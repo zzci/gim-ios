@@ -9,11 +9,17 @@ setup_xcode_cloud_environment () {
     # Move to the project root
     cd ..
 
-    # Prevent installing dependencies in system directories
-    echo 'export GEM_HOME=$HOME/.gem' >>~/.zshrc
-    echo 'export PATH=$GEM_HOME/bin:$PATH' >>~/.zshrc
-    echo 'export PATH="/usr/local/opt/ruby/bin:$PATH"' >> ~/.zshrc
-    echo 'export PATH="/Users/local/Library/Python/3.9/bin:$PATH"' >> ~/.zshrc
+    # Prevent installing dependencies in system directories.
+    # Use a marker to avoid appending duplicates on repeated invocations.
+    if ! grep -q '# GIM CI environment' ~/.zshrc 2>/dev/null; then
+        cat >> ~/.zshrc << 'ZSHRC_EOF'
+# GIM CI environment
+export GEM_HOME=$HOME/.gem
+export PATH=$GEM_HOME/bin:$PATH
+export PATH="/usr/local/opt/ruby/bin:$PATH"
+export PATH="/Users/local/Library/Python/3.9/bin:$PATH"
+ZSHRC_EOF
+    fi
 
     export GEM_HOME=$HOME/.gem
     export PATH=$GEM_HOME/bin:$PATH
@@ -59,7 +65,14 @@ setup_github_actions_translations_environment() {
 xcode_select_for_github_actions() {
     # While fastlane has its own way of selecting Xcode, that only works inside of fastlane.
     # We need to select it globally for other processes like xcresultparser and our custom tools to use the same Xcode version.
-    sudo xcode-select -s /Applications/Xcode_26.1.1.app
+    # Dynamically find the latest Xcode 26.x installation instead of hardcoding a patch version.
+    XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)
+    if [ -z "$XCODE_PATH" ]; then
+        echo "Error: No Xcode 26.x found in /Applications" >&2
+        exit 1
+    fi
+    echo "Selecting Xcode at: $XCODE_PATH"
+    sudo xcode-select -s "$XCODE_PATH"
 }
 
 generate_what_to_test_notes() {

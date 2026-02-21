@@ -28,32 +28,34 @@ class PreviewTests: XCTestCase {
                                                      .init(name: "iPad", device: "iPad")]
     private var recordMode: SnapshotTestingConfiguration.Record = .missing
 
-    override func setUp() {
-        super.setUp()
-        
+    override func setUp() throws {
+        try super.setUp()
+
         if ProcessInfo().environment["RECORD_FAILURES"].map(Bool.init) == true {
             recordMode = .failed
         }
 
-        checkEnvironments()
+        try checkEnvironments()
         UIView.setAnimationsEnabled(false)
     }
     
     /// Check environments to avoid problems with snapshots on different devices or OS.
-    private func checkEnvironments() {
+    /// Throws `XCTSkip` when run on an unsupported configuration instead of crashing the runner.
+    private func checkEnvironments() throws {
         if let simulatorDevice {
             let deviceModel = ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"]
             guard deviceModel?.contains(simulatorDevice) ?? false else {
-                fatalError("\(deviceModel ?? "Unknown") is the wrong one. Switch to using \(simulatorDevice) for these tests.")
+                throw XCTSkip("Running on \(deviceModel ?? "Unknown") but preview tests require \(simulatorDevice). Skipping to avoid invalid snapshots.")
             }
         }
 
         let osVersion = ProcessInfo().operatingSystemVersion
         guard osVersion.majorVersion == requiredOSVersion.major, osVersion.minorVersion == requiredOSVersion.minor else {
-            fatalError("Switch to iOS \(requiredOSVersion) for these tests.")
+            throw XCTSkip("Running on iOS \(osVersion.majorVersion).\(osVersion.minorVersion) but preview tests require \(requiredOSVersion.major).\(requiredOSVersion.minor). Skipping to avoid invalid snapshots.")
         }
         guard !snapshotDevices.isEmpty else {
-            fatalError("Specify at least one snapshot device to test on.")
+            XCTFail("Specify at least one snapshot device to test on.")
+            return
         }
     }
     
@@ -87,7 +89,8 @@ class PreviewTests: XCTestCase {
         
         for snapshotDevice in snapshotDevices {
             guard var device = PreviewDevice(rawValue: snapshotDevice.device).snapshotDevice() else {
-                fatalError("Unknown device name: \(snapshotDevice.device)")
+                XCTFail("Unknown device name: \(snapshotDevice.device)")
+                continue
             }
             // Ignore specific device safe area (using the workaround value to fix rendering issues).
             device.safeArea = .one

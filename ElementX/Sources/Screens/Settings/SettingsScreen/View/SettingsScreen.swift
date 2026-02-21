@@ -174,15 +174,6 @@ struct SettingsScreen: View {
                         })
                         .accessibilityIdentifier(A11yIdentifiers.settingsScreen.reportBug)
             }
-            
-            if context.viewState.showAnalyticsSettings {
-                ListRow(label: .default(title: L10n.commonAnalytics,
-                                        icon: \.chart),
-                        kind: .navigationLink {
-                            context.send(viewAction: .analytics)
-                        })
-                        .accessibilityIdentifier(A11yIdentifiers.settingsScreen.analytics)
-            }
         }
     }
     

@@ -7,7 +7,6 @@
 //
 
 import Compound
-import SentrySwiftUI
 import SwiftUI
 
 struct HomeScreenContent: View {
@@ -17,8 +16,8 @@ struct HomeScreenContent: View {
     let scrollViewAdapter: ScrollViewAdapter
     
     var body: some View {
+        // sentryTrace is on the parent HomeScreen; no duplicate trace here (SENTRY-006).
         roomList
-            .sentryTrace("\(Self.self)")
     }
     
     private var roomList: some View {

@@ -28,7 +28,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
                                            showLinkNewDeviceButton: appSettings.linkNewDeviceEnabled,
                                            showAccountDeactivation: userSession.clientProxy.canDeactivateAccount,
                                            showDeveloperOptions: appSettings.developerOptionsEnabled,
-                                           showAnalyticsSettings: appSettings.canPromptForAnalytics,
                                            isBugReportServiceEnabled: isBugReportServiceEnabled),
                    mediaProvider: userSession.mediaProvider)
         
@@ -102,8 +101,6 @@ class SettingsScreenViewModel: SettingsScreenViewModelType, SettingsScreenViewMo
             actionsSubject.send(.linkNewDevice)
         case let .manageAccount(url):
             actionsSubject.send(.manageAccount(url: url))
-        case .analytics:
-            actionsSubject.send(.analytics)
         case .appLock:
             actionsSubject.send(.appLock)
         case .reportBug:

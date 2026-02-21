@@ -69,6 +69,8 @@ final class AppSettings {
         case focusEventOnNotificationTap
         case linkNewDeviceEnabled
         
+        case sentryEnabled
+
         // Doug's tweaks 🔧
         case hideUnreadMessagesBadge
         case hideQuietNotificationAlerts
@@ -291,17 +293,22 @@ final class AppSettings {
     var traceLogPacks: Set<TraceLogPack>
     
     // MARK: - Bug report
-    
+
     // swiftlint:disable:next force_unwrapping
     let bugReportSentryURL: URL? = URL(string: "https://4d5bbbd5fbf8fd0228af5eb5ea794853@o4510919240318976.ingest.de.sentry.io/4510919242088528")
     // swiftlint:disable:next force_unwrapping
     let bugReportSentryRustURL: URL? = URL(string: "https://4e7ba49579b9edce2c9fd483c74bb416@o4510919240318976.ingest.de.sentry.io/4510919247528016")
     /// The name allocated by the bug report server
     private(set) var bugReportApplicationID = "gim-ios"
+
+    /// Master switch for Sentry. When false, SentrySDK is never initialized (hard off).
+    /// Defaults to true so existing users keep their current behavior.
+    @UserPreference(key: UserDefaultsKeys.sentryEnabled, defaultValue: true, storageType: .userDefaults(store))
+    var sentryEnabled
     
     // MARK: - Analytics
     
-    /// PostHog analytics disabled for GIM. Keep the property for interface compatibility.
+    /// Analytics backend disabled for GIM. Keep the property for interface compatibility.
     let analyticsConfiguration: AnalyticsConfiguration? = nil
     /// The URL to open with more information about analytics terms. When this is `nil` the "Learn more" link will be hidden.
     private(set) var analyticsTermsURL: URL? = "https://g.im/privacy"

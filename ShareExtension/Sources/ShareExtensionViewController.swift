@@ -68,58 +68,75 @@ class ShareExtensionViewController: UIViewController {
               let itemProviders = extensionItem.attachments else {
             return nil
         }
-        
+
         let roomID = (extensionContext.intent as? INSendMessageIntent)?.conversationIdentifier
-        
+
         var mediaFiles = [ShareExtensionMediaFile]()
+        var textItems = [String]()
+
         for itemProvider in itemProviders {
             if let fileURL = await itemProvider.storeData(withinAppGroupContainer: true) {
                 mediaFiles.append(.init(url: fileURL, suggestedName: fileURL.lastPathComponent))
             } else if let url = await itemProvider.loadTransferable(type: URL.self) {
-                return .text(roomID: roomID, text: url.absoluteString)
+                textItems.append(url.absoluteString)
             } else if let string = await itemProvider.loadString() {
-                return .text(roomID: roomID, text: string)
+                textItems.append(string)
             } else {
                 MXLog.error("Failed loading NSItemProvider data: \(itemProvider)")
             }
         }
-        
+
+        // Prefer media files when both media and text are present.
+        // The text is often a redundant URL or caption that the media already represents.
         if !mediaFiles.isEmpty {
             return .mediaFiles(roomID: roomID, mediaFiles: mediaFiles)
         }
-        
+
+        if let combinedText = textItems.first {
+            // When multiple text items are shared, join them with newlines.
+            let text = textItems.count == 1 ? combinedText : textItems.joined(separator: "\n")
+            return .text(roomID: roomID, text: text)
+        }
+
         return nil
     }
     
     private func openMainApp(payload: ShareExtensionPayload) async {
-        guard let payload = urlEncodeSharePayload(payload) else {
-            MXLog.error("Failed preparing share payload")
-            return
-        }
-        
-        guard let url = URL(string: "\(InfoPlistReader.main.baseBundleIdentifier):/\(ShareExtensionConstants.urlPath)?\(payload)") else {
-            MXLog.error("Failed retrieving main application scheme")
-            return
-        }
-        
-        await openURL(url)
-    }
-    
-    private func urlEncodeSharePayload(_ payload: ShareExtensionPayload) -> String? {
         let data: Data
         do {
             data = try JSONEncoder().encode(payload)
         } catch {
             MXLog.error("Failed encoding share payload with error: \(error)")
-            return nil
+            return
         }
-        
+
         guard let jsonString = String(data: data, encoding: .utf8) else {
             MXLog.error("Invalid payload data")
-            return nil
+            return
         }
-        
-        return jsonString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+
+        let urlString: String
+
+        // For small payloads, pass inline via URL query. For large payloads, write to a shared file.
+        if let encoded = jsonString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           encoded.utf8.count <= ShareExtensionConstants.maxURLPayloadSize {
+            urlString = "\(InfoPlistReader.main.baseBundleIdentifier):/\(ShareExtensionConstants.urlPath)?\(encoded)"
+        } else {
+            do {
+                try data.write(to: ShareExtensionConstants.payloadFileURL, options: .atomic)
+            } catch {
+                MXLog.error("Failed writing share payload to file: \(error)")
+                return
+            }
+            urlString = "\(InfoPlistReader.main.baseBundleIdentifier):/\(ShareExtensionConstants.urlPath)"
+        }
+
+        guard let url = URL(string: urlString) else {
+            MXLog.error("Failed constructing main application URL")
+            return
+        }
+
+        await openURL(url)
     }
     
     private func dismiss() {

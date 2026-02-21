@@ -110,20 +110,38 @@ private struct AppGroupURLParser: URLParser {
               url.pathComponents.last == ShareExtensionConstants.urlPath else {
             return nil
         }
-        
-        guard let query = url.query(percentEncoded: false),
-              let queryData = query.data(using: .utf8) else {
-            MXLog.error("Failed processing share parameters")
+
+        // Try reading the payload from the URL query first, then fall back to a shared file.
+        let payloadData: Data?
+        if let query = url.query(percentEncoded: false), let queryData = query.data(using: .utf8) {
+            payloadData = queryData
+        } else {
+            payloadData = readAndDeletePayloadFile()
+        }
+
+        guard let payloadData else {
+            MXLog.error("Failed processing share parameters: no query and no payload file")
             return nil
         }
-        
+
         do {
-            let payload = try JSONDecoder().decode(ShareExtensionPayload.self, from: queryData)
+            let payload = try JSONDecoder().decode(ShareExtensionPayload.self, from: payloadData)
             return .share(payload)
         } catch {
             MXLog.error("Failed decoding share payload with error: \(error)")
             return nil
         }
+    }
+
+    private func readAndDeletePayloadFile() -> Data? {
+        let fileURL = ShareExtensionConstants.payloadFileURL
+        guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else {
+            return nil
+        }
+        defer {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        return try? Data(contentsOf: fileURL)
     }
 }
 

@@ -43,6 +43,9 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         /// The screen to report an error.
         case bugReportFlow
 
+        /// The pre-auth diagnostics screen.
+        case diagnosticsScreen
+
         /// The flow is complete.
         case complete
     }
@@ -58,6 +61,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         case loginWithQR
         /// The user encountered a problem.
         case reportProblem
+        /// The user opened the pre-auth diagnostics screen.
+        case openDiagnostics
 
         /// The QR login flow was aborted.
         case cancelledLoginWithQR
@@ -73,6 +78,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
 
         /// The user has finished reporting a problem (or viewing the logs).
         case bugReportFlowComplete
+        /// The user dismissed the diagnostics screen.
+        case diagnosticsComplete
 
         /// The user has successfully signed in. The new session can be found in the `userInfo`.
         case signedIn
@@ -85,6 +92,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
     
     // periphery:ignore - retaining purpose
     private var bugReportFlowCoordinator: BugReportFlowCoordinator?
+    // periphery:ignore - retaining purpose
+    private var diagnosticsNavigationStackCoordinator: NavigationStackCoordinator?
     
     weak var delegate: AuthenticationFlowCoordinatorDelegate?
     
@@ -145,6 +154,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             navigationStackCoordinator.popToRoot(animated: animated)
         case .bugReportFlow:
             navigationStackCoordinator.setSheetCoordinator(nil)
+        case .diagnosticsScreen:
+            navigationStackCoordinator.setSheetCoordinator(nil)
         case .complete:
             fatalError()
         }
@@ -192,6 +203,13 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
             self?.startBugReportFlow()
         }
         stateMachine.addRoutes(event: .bugReportFlowComplete, transitions: [.bugReportFlow => .startScreen])
+
+        // Diagnostics
+
+        stateMachine.addRoutes(event: .openDiagnostics, transitions: [.startScreen => .diagnosticsScreen]) { [weak self] _ in
+            self?.showDiagnosticsScreen()
+        }
+        stateMachine.addRoutes(event: .diagnosticsComplete, transitions: [.diagnosticsScreen => .startScreen])
         
         // Completion
         
@@ -237,6 +255,8 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
                     stateMachine.tryEvent(.loginWithQR)
                 case .reportProblem:
                     stateMachine.tryEvent(.reportProblem)
+                case .diagnostics:
+                    stateMachine.tryEvent(.openDiagnostics)
                 case .loginDirectlyWithOIDC(let oidcData, let window):
                     stateMachine.tryEvent(.continueWithOIDC, userInfo: (oidcData, window))
                 case .loginDirectlyWithPassword(let loginHint):
@@ -336,8 +356,57 @@ class AuthenticationFlowCoordinator: FlowCoordinatorProtocol {
         }
     }
     
+    // MARK: - Diagnostics
+
+    private func showDiagnosticsScreen() {
+        let internalStackCoordinator = NavigationStackCoordinator()
+        let coordinator = PreAuthDiagnosticsScreenCoordinator(parameters: .init(
+            bugReportService: bugReportService,
+            appSettings: appSettings
+        ))
+
+        coordinator.actions
+            .sink { [weak self] action in
+                guard let self else { return }
+                switch action {
+                case .dismiss:
+                    navigationStackCoordinator.setSheetCoordinator(nil)
+                case .viewLogs:
+                    showLogViewer(in: internalStackCoordinator)
+                }
+            }
+            .store(in: &cancellables)
+
+        internalStackCoordinator.setRootCoordinator(coordinator)
+        diagnosticsNavigationStackCoordinator = internalStackCoordinator
+        navigationStackCoordinator.setSheetCoordinator(internalStackCoordinator) { [weak self] in
+            self?.stateMachine.tryEvent(.diagnosticsComplete)
+        }
+    }
+
+    private func showLogViewer(in stackCoordinator: NavigationStackCoordinator) {
+        let coordinator = LogViewerScreenCoordinator()
+        coordinator.actions.sink { [weak stackCoordinator] action in
+            switch action {
+            case .done:
+                if ProcessInfo.processInfo.isiOSAppOnMac {
+                    stackCoordinator?.setSheetCoordinator(nil)
+                } else {
+                    stackCoordinator?.pop()
+                }
+            }
+        }
+        .store(in: &cancellables)
+
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            stackCoordinator.setSheetCoordinator(coordinator)
+        } else {
+            stackCoordinator.push(coordinator)
+        }
+    }
+
     // MARK: - Bug Report
-    
+
     private func startBugReportFlow() {
         let coordinator = BugReportFlowCoordinator(parameters: .init(presentationMode: .sheet(navigationStackCoordinator),
                                                                      userIndicatorController: userIndicatorController,

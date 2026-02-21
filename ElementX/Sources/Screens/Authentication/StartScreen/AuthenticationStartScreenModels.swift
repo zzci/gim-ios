@@ -13,6 +13,7 @@ import SwiftUI
 enum AuthenticationStartScreenCoordinatorAction {
     case loginWithQR
     case reportProblem
+    case diagnostics
 
     case loginDirectlyWithOIDC(data: OIDCAuthorizationDataProxy, window: UIWindow)
     case loginDirectlyWithPassword(loginHint: String?)
@@ -21,6 +22,7 @@ enum AuthenticationStartScreenCoordinatorAction {
 enum AuthenticationStartScreenViewModelAction: Equatable {
     case loginWithQR
     case reportProblem
+    case diagnostics
 
     case loginDirectlyWithOIDC(data: OIDCAuthorizationDataProxy, window: UIWindow)
     case loginDirectlyWithPassword(loginHint: String?)
@@ -65,6 +67,7 @@ enum AuthenticationStartScreenViewAction {
 
     case loginWithQR
     case reportProblem
+    case diagnostics
 
     /// Clear any homeserver footer errors when editing the text field.
     case clearHomeserverError

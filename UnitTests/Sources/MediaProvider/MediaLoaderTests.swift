@@ -23,28 +23,28 @@ final class MediaLoaderTests: XCTestCase {
             for _ in 1...10 {
                 _ = try await mediaLoader.loadMediaContentForSource(mediaSource)
             }
-            
+
             XCTAssertEqual(mediaLoadingClient.getMediaContentMediaSourceCallsCount, 10)
         } catch {
-            fatalError()
+            XCTFail("Unexpected error loading media content: \(error)")
         }
     }
-    
+
     func testMediaThumbnailRequestCoalescing() async throws {
         let mediaLoadingClient = ClientSDKMock()
         mediaLoadingClient.getMediaThumbnailMediaSourceWidthHeightReturnValue = Data()
         let mediaLoader = MediaLoader(client: mediaLoadingClient)
-        
+
         let mediaSource = try MediaSourceProxy(url: .mockMXCImage, mimeType: nil)
-        
+
         do {
             for _ in 1...10 {
                 _ = try await mediaLoader.loadMediaThumbnailForSource(mediaSource, width: 100, height: 100)
             }
-            
+
             XCTAssertEqual(mediaLoadingClient.getMediaThumbnailMediaSourceWidthHeightCallsCount, 10)
         } catch {
-            fatalError()
+            XCTFail("Unexpected error loading media thumbnail: \(error)")
         }
     }
 }

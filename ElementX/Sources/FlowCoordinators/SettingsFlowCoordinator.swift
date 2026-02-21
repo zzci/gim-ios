@@ -89,8 +89,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
                     startLinkNewDeviceFlow()
                 case let .manageAccount(url):
                     presentAccountManagementURL(url)
-                case .analytics:
-                    presentAnalyticsScreen()
                 case .appLock:
                     presentAppLockSetupFlow()
                 case .bugReport:
@@ -194,12 +192,6 @@ class SettingsFlowCoordinator: FlowCoordinatorProtocol {
         navigationStackCoordinator.setSheetCoordinator(stackCoordinator) { [weak self] in
             self?.linkNewDeviceFlowCoordinator = nil
         }
-    }
-    
-    private func presentAnalyticsScreen() {
-        let coordinator = AnalyticsSettingsScreenCoordinator(parameters: .init(appSettings: flowParameters.appSettings,
-                                                                               analytics: flowParameters.analytics))
-        navigationStackCoordinator.push(coordinator)
     }
     
     private func presentAppLockSetupFlow() {

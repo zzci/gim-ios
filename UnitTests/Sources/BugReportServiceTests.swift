@@ -84,4 +84,75 @@ class BugReportServiceTests: XCTestCase {
             XCTAssertNotNil(error.errorDescription)
         }
     }
+
+    // MARK: - Sentry Toggle Tests
+
+    func testSentryEnabledDefaultsToTrue() {
+        AppSettings.resetAllSettings()
+        let appSettings = AppSettings()
+        XCTAssertTrue(appSettings.sentryEnabled, "Sentry should default to enabled")
+    }
+
+    func testSentryEnabledToggleOff() {
+        AppSettings.resetAllSettings()
+        let appSettings = AppSettings()
+        appSettings.sentryEnabled = false
+        XCTAssertFalse(appSettings.sentryEnabled, "Sentry should be disabled after toggle off")
+    }
+
+    func testSentryTogglePersistsAcrossReads() {
+        AppSettings.resetAllSettings()
+        let appSettings = AppSettings()
+        appSettings.sentryEnabled = false
+
+        // Read from a fresh AppSettings instance to verify persistence
+        let appSettings2 = AppSettings()
+        XCTAssertFalse(appSettings2.sentryEnabled, "Sentry toggle should persist")
+    }
+
+    func testSentryToggleReEnable() {
+        AppSettings.resetAllSettings()
+        let appSettings = AppSettings()
+        appSettings.sentryEnabled = false
+        appSettings.sentryEnabled = true
+        XCTAssertTrue(appSettings.sentryEnabled, "Sentry should be re-enabled after toggling back on")
+    }
+
+    func testBugReportServiceReflectsSentryToggle() {
+        let enabledService = BugReportService(applicationID: "mock_app_id",
+                                               sdkGitSHA: "1234",
+                                               appHooks: AppHooks(),
+                                               sentryEnabled: true)
+        XCTAssertTrue(enabledService.isEnabled)
+
+        let disabledService = BugReportService(applicationID: "mock_app_id",
+                                                sdkGitSHA: "1234",
+                                                appHooks: AppHooks(),
+                                                sentryEnabled: false)
+        XCTAssertFalse(disabledService.isEnabled)
+    }
+
+    func testSentryTogglePublisher() {
+        AppSettings.resetAllSettings()
+        let appSettings = AppSettings()
+        let expectation = expectation(description: "sentryEnabled publisher should emit")
+        var receivedValues = [Bool]()
+        var cancellable: AnyCancellable?
+
+        cancellable = appSettings.$sentryEnabled
+            .dropFirst()
+            .sink { value in
+                receivedValues.append(value)
+                if receivedValues.count == 2 {
+                    expectation.fulfill()
+                }
+            }
+
+        appSettings.sentryEnabled = false
+        appSettings.sentryEnabled = true
+
+        waitForExpectations(timeout: 2.0)
+        XCTAssertEqual(receivedValues, [false, true])
+        cancellable?.cancel()
+    }
 }

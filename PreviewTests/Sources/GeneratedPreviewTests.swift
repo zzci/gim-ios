@@ -18,20 +18,6 @@ extension PreviewTests {
         }
     }
 
-    func testAnalyticsPromptScreen() async throws {
-        AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
-        for (index, preview) in AnalyticsPromptScreen_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
-    func testAnalyticsSettingsScreen() async throws {
-        AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
-        for (index, preview) in AnalyticsSettingsScreen_Previews._allPreviews.enumerated() {
-            try await assertSnapshots(matching: preview, step: index)
-        }
-    }
-
     func testAppLockScreen() async throws {
         AppSettings.resetAllSettings() // Ensure this test's previews start with fresh settings.
         for (index, preview) in AppLockScreen_Previews._allPreviews.enumerated() {

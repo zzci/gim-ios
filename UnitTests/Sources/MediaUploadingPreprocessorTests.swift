@@ -471,7 +471,8 @@ final class MediaUploadingPreprocessorTests: XCTestCase {
               let originalImage = UIImage(data: originalImageData),
               let convertedImageData = try? Data(contentsOf: convertedImageURL),
               let convertedImage = UIImage(data: convertedImageData) else {
-            fatalError()
+            XCTFail("Failed to load original or converted image data")
+            return
         }
         
         if appSettings.optimizeMediaUploads {

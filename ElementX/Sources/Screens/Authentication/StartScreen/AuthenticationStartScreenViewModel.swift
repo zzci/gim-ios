@@ -57,6 +57,8 @@ class AuthenticationStartScreenViewModel: AuthenticationStartScreenViewModelType
             if canReportProblem {
                 actionsSubject.send(.reportProblem)
             }
+        case .diagnostics:
+            actionsSubject.send(.diagnostics)
         case .clearHomeserverError:
             clearHomeserverError()
         case .loginWithHomeserver:

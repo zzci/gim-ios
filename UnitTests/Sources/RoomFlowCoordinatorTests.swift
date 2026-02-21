@@ -444,7 +444,8 @@ class RoomFlowCoordinatorTests: XCTestCase {
             case .invited:
                 return .success(RoomPreviewProxyMock.invited(roomID: roomID))
             default:
-                fatalError("Something isn't set up right")
+                XCTFail("Room preview requested for unexpected room type")
+                return .failure(.sdkError(ClientError.Generic(msg: "Test setup failure")))
             }
         }
         

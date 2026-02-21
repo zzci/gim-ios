@@ -10,7 +10,6 @@ import Foundation
 
 enum A11yIdentifiers {
     static let alertInfo = AlertInfo()
-    static let analyticsPromptScreen = AnalyticsPromptScreen()
     static let appLockScreen = AppLockScreen()
     static let appLockSetupBiometricsScreen = AppLockSetupBiometricsScreen()
     static let appLockSetupPINScreen = AppLockSetupPINScreen()
@@ -72,11 +71,7 @@ enum A11yIdentifiers {
         let removePIN = "app_lock_setup_settings-remove_pin"
     }
 
-    struct AnalyticsPromptScreen {
-        let title = "analytics_prompt-title"
-        let enable = "analytics_prompt-enable"
-        let notNow = "analytics_prompt-not_now"
-    }
+
 
     struct BugReportScreen {
         let report = "bug_report-report"
@@ -237,7 +232,6 @@ enum A11yIdentifiers {
         let account = "settings-account"
         let secureBackup = "settings-secure_backup"
         let notifications = "settings-notifications"
-        let analytics = "settings-analytics"
         let screenLock = "settings-screen_lock"
         let reportBug = "settings-report_bug"
         let about = "settings_about"

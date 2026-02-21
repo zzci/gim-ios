@@ -1,3 +1,5 @@
+# Periphery dead code detection — local development use only.
+# Not integrated in CI. Run manually: periphery scan
 project: ElementX.xcodeproj
 schemes:
 - ElementX

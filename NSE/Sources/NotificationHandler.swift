@@ -15,9 +15,12 @@ class NotificationHandler {
     private let contentHandler: (UNNotificationContent) -> Void
     private var notificationContent: UNMutableNotificationContent
     private let tag: String
-    
+
+    /// Guards against calling contentHandler more than once, which would crash the process.
+    private var hasCalledContentHandler = false
+
     private let notificationContentBuilder: NotificationContentBuilder
-    
+
     init(userSession: NSEUserSession,
          settings: CommonSettingsProtocol,
          contentHandler: @escaping (UNNotificationContent) -> Void,
@@ -28,10 +31,10 @@ class NotificationHandler {
         self.contentHandler = contentHandler
         self.notificationContent = notificationContent
         self.tag = tag
-        
+
         let eventStringBuilder = RoomMessageEventStringBuilder(attributedStringBuilder: AttributedStringBuilder(mentionBuilder: PlainMentionBuilder()),
                                                                destination: .notification)
-        
+
         notificationContentBuilder = NotificationContentBuilder(messageEventStringBuilder: eventStringBuilder,
                                                                 notificationSoundName: settings.notificationSoundName.publisher.value,
                                                                 userSession: userSession)
@@ -72,17 +75,27 @@ class NotificationHandler {
     // MARK: - Private
     
     private func deliverNotification() {
+        guard !hasCalledContentHandler else {
+            MXLog.warning("\(tag) contentHandler already called, skipping deliver")
+            return
+        }
+        hasCalledContentHandler = true
         MXLog.info("\(tag) Delivering notification")
         contentHandler(notificationContent)
     }
 
     private func discardNotification() {
+        guard !hasCalledContentHandler else {
+            MXLog.warning("\(tag) contentHandler already called, skipping discard")
+            return
+        }
+        hasCalledContentHandler = true
         MXLog.info("\(tag) Discarding notification")
-        
+
         let content = UNMutableNotificationContent()
         content.badge = notificationContent.unreadCount as NSNumber?
         MXLog.info("\(tag) New badge value: \(content.badge?.stringValue ?? "nil")")
-        
+
         contentHandler(content)
     }
     

@@ -33,9 +33,10 @@ class RoomScreenViewModelTests: XCTestCase {
         // setup a way to inject the mock of the pinned events timeline
         roomProxyMock.pinnedEventsTimelineClosure = {
             guard let timeline = await timelineSubject.values.first() else {
-                fatalError()
+                XCTFail("Pinned events timeline subject completed without emitting a value")
+                return .failure(.sdkError(ClientError.Generic(msg: "Test setup failure")))
             }
-            
+
             return .success(timeline)
         }
         // setup the room proxy actions publisher

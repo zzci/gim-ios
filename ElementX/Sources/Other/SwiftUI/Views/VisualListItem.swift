@@ -56,8 +56,6 @@ private struct VisualListItemLabelStyle: LabelStyle {
 // MARK: - Previews
 
 struct VisualListItem_Previews: PreviewProvider, TestablePreview {
-    static let strings = AnalyticsPromptScreenStrings(termsURL: ServiceLocator.shared.settings.analyticsTermsURL)
-
     static var testImage1: some View {
         Image(systemName: "circle")
     }
@@ -65,13 +63,13 @@ struct VisualListItem_Previews: PreviewProvider, TestablePreview {
     static var testImage2: some View {
         Image(systemName: "square")
     }
-    
+
     static var previews: some View {
         VStack(alignment: .leading, spacing: 4) {
-            VisualListItem(title: strings.point1, position: .top) {
+            VisualListItem(title: "First item in the list", position: .top) {
                 testImage1
             }
-            VisualListItem(title: strings.point2, position: .middle) {
+            VisualListItem(title: "Second item in the list", position: .middle) {
                 testImage2
             }
             VisualListItem(title: "This is a short string.", position: .middle) {

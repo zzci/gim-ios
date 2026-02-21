@@ -291,8 +291,8 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 #### Infrastructure
 | Service | Purpose | Rust SDK Wrapper? |
 |---------|---------|:-:|
-| **Analytics** | PostHog telemetry | No |
-| **BugReport** | Bug report crash reports | No |
+| **Analytics** | Analytics telemetry (no-op in GIM) | No |
+| **BugReport** | Rageshake crash reports | No |
 | **LinkMetadata** | URL preview metadata | No |
 | **Users** | User profile management | Yes |
 | **RoomDirectorySearch** | Public room search | Yes |
@@ -304,7 +304,7 @@ enum Event { case selectRoom(roomId), deselectRoom, ... }
 - **16 services** directly wrap Rust SDK types; **12** are platform-specific
 - All services use `@Automockable` protocol for Sourcery mock generation
 - Services are injected via `ServiceLocator` pattern
-- **Potentially dead code:** BugReport (bug report URL is localhost), LinkMetadata (minimal usage)
+- **Potentially dead code:** BugReport (rageshake URL is localhost), LinkMetadata (minimal usage)
 
 ---
 
@@ -531,17 +531,16 @@ bundle exec fastlane ui_tests device:iPhone
 
 | # | Issue | File | Impact |
 |---|-------|------|--------|
-| 1 | **Element PostHog/Sentry hardcoded** | `AppSettings.swift:371-373` | User analytics sent to Element's servers |
+| 1 | **Element Call Sentry hardcoded** | `AppSettings.swift:371-373` | Element Call telemetry sent to Element's servers |
 | 2 | **Associated domains reference element.io** | `target.yml:108-117` | Deep links from Element domains accepted |
 | 3 | **Sentry crash reports to Element** | `Secrets.swift`, `fastlane/Fastfile:174` | Crash data sent to Element infrastructure |
-| 4 | **PostHog analytics to Element** | `Secrets.swift:4-5` | User behavior tracked by Element |
 
 **Details:**
 
+PostHog analytics SDK has been removed from GIM. The no-op analytics client discards all events.
+
 ```swift
-// AppSettings.swift:371-373 - HARDCODED Element Call telemetry
-elementCallPosthogAPIHost = "https://posthog-element-call.element.io"
-elementCallPosthogAPIKey = "phc_rXGHx9vDmyEvyRxPziYtdVIv0ahEv8A9uLWFcCi1WcU"
+// AppSettings.swift - Element Call telemetry (still hardcoded)
 elementCallPosthogSentryDSN = "https://3bd2f95ba5554d4497da7153b552ffb5@sentry.tools.element.io/41"
 ```
 
@@ -567,7 +566,7 @@ com.apple.developer.associated-domains:
 | # | Issue | File |
 |---|-------|------|
 | 9 | `call.element.io` in known hosts | `AppRoutes.swift:138` |
-| 10 | Bug report URL placeholder | `Secrets.swift:6` |
+| 10 | Rageshake URL placeholder | `Secrets.swift:6` |
 | 11 | Analytics terms URL → element.io | `AppSettings.swift:322` |
 | 12 | Element web hosts hardcoded | `AppSettings.swift:228` |
 | 13 | `mobile.element.io` account provisioning | `AppSettings.swift:230` |
@@ -601,7 +600,6 @@ com.apple.developer.associated-domains:
 
 | URL | Location | Should Be |
 |-----|----------|-----------|
-| `posthog-element-call.element.io` | AppSettings.swift:371 | Self-hosted or disabled |
 | `sentry.tools.element.io` | AppSettings.swift:373, fastlane | Self-hosted or disabled |
 | `app.element.io` | AppSettings.swift:228, target.yml | `g.im` |
 | `mobile.element.io` | AppSettings.swift:230 | `g.im` equivalent |
@@ -624,7 +622,7 @@ com.apple.developer.associated-domains:
 
 | Module | Evidence | Recommendation |
 |--------|----------|----------------|
-| BugReport service | Bug report URL is localhost | Remove or configure for g.im |
+| BugReport service | Rageshake URL is localhost | Remove or configure for g.im |
 | LinkMetadata service | Minimal usage | Evaluate necessity |
 | Dynamic package | 0 imports | Remove from dependencies |
 
@@ -643,9 +641,9 @@ com.apple.developer.associated-domains:
 ### 13.1 MUST DO (Before Production)
 
 1. **Remove all Element infrastructure endpoints** from production code
-   - Update PostHog host/key to self-hosted or disable
+   - PostHog SDK removed; analytics client is now a no-op
    - Update Sentry DSNs to self-hosted or disable
-   - Change bug report URL to GIM server
+   - Change rageshake URL to GIM server
    - Remove Element Pro App Store link
 
 2. **Update Associated Domains**
@@ -665,7 +663,7 @@ com.apple.developer.associated-domains:
 
 6. Implement certificate pinning for g.im homeserver
 7. Harden Keychain accessibility to `kSecAttrAccessibleAfterFirstUnlock`
-8. Add PostHog/Sentry kill switch (feature flags exist but verify)
+8. Verify Sentry kill switch works correctly (PostHog already removed)
 9. Audit and update all hardcoded URLs
 10. Review Element Call integration for g.im compatibility
 
@@ -765,7 +763,6 @@ User Action → View → ViewAction → ViewModel → ViewModelAction → Coordi
 | SwiftState | x | | | |
 | WysiwygComposer | x | | | |
 | EmbeddedElementCall | x | | | |
-| PostHog | x | | | |
 | Sentry | x | | | |
 | SnapshotTesting | | | | x |
 | MapLibre | x | | | |
@@ -774,10 +771,10 @@ User Action → View → ViewAction → ViewModel → ViewModelAction → Coordi
 
 | ID | Severity | Issue | Status |
 |----|----------|-------|--------|
-| SEC-01 | CRITICAL | PostHog/Sentry to Element servers | Unfixed |
+| SEC-01 | CRITICAL | Sentry to Element servers | Unfixed |
 | SEC-02 | CRITICAL | Associated domains → element.io | Unfixed |
 | SEC-03 | CRITICAL | Crash reports to Element | Unfixed |
-| SEC-04 | CRITICAL | Analytics to Element | Unfixed |
+| SEC-04 | RESOLVED | PostHog analytics removed | Fixed (no-op client) |
 | SEC-05 | HIGH | Element Pro App Store link | Unfixed |
 | SEC-06 | HIGH | io.element.call scheme active | Unfixed |
 | SEC-07 | HIGH | Bug report ID = "element-x-ios" | Unfixed |

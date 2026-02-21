@@ -129,14 +129,17 @@ lane :config_nightly do |options|
   UI.user_error!("Invalid build number.") unless !build_number.to_s.empty?
 
   target_file_path = "../project.yml"
-  data = YAML.load_file target_file_path
-  
-  # Check if the "path" already exists in the "include" array
-  if !data["include"].any? { |item| item["path"] == "Variants/Nightly/nightly.yml" }
-    data["include"].append({ "path" => "Variants/Nightly/nightly.yml" })
-  end
+  nightly_include = "- path: Variants/Nightly/nightly.yml"
 
-  File.open(target_file_path, 'w') { |f| YAML.dump(data, f) }
+  content = File.read(target_file_path)
+
+  # Append nightly include if not already present, preserving original YAML formatting.
+  if !content.include?("Variants/Nightly/nightly.yml")
+    content = content.sub(/(^include:\n(?:- path: .+\n)+)/) do |match|
+      "#{match}#{nightly_include}\n"
+    end
+    File.write(target_file_path, content)
+  end
 
   xcodegen(spec: "project.yml")
 
@@ -194,9 +197,14 @@ lane :release_to_github do
   )
   
   release_date = Date.today.strftime("%Y-%m-%d")
-  generated_notes = github_release["body"].gsub(/<!-- .*? -->/, '').gsub("### ", "\n").gsub("## ", "### ")
-  UI.user_error!("The generated release notes are missing!") unless !generated_notes.to_s.empty?
-  
+  raw_body = github_release["body"].to_s
+  generated_notes = raw_body.gsub(/<!-- .*? -->/, '').gsub("### ", "\n").gsub("## ", "### ")
+
+  if generated_notes.strip.empty?
+    UI.important("Release notes are empty — using placeholder in CHANGES.md")
+    generated_notes = "\n- No notable changes."
+  end
+
   # Prepend the new release notes to the CHANGES.md file
   changes_file = "../CHANGES.md"
   File.open(changes_file, "r+") do |file|
@@ -249,8 +257,8 @@ def rebase_main_onto_current_branch
 
   UI.message("Current branch: #{current_branch}")
 
-  # Switch to main and update it
-  sh("git reset --hard")
+  # Ensure clean working tree before switching branches
+  sh("git stash --include-untracked || true")
   sh("git checkout main")
   sh("git pull origin main")
   sh("git rebase #{current_branch}")

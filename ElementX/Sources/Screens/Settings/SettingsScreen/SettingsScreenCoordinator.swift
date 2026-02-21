@@ -20,7 +20,6 @@ enum SettingsScreenCoordinatorAction {
     case logout
     case secureBackup
     case userDetails
-    case analytics
     case appLock
     case bugReport
     case about
@@ -64,8 +63,6 @@ final class SettingsScreenCoordinator: CoordinatorProtocol {
                     actionsSubject.send(.linkNewDevice)
                 case let .manageAccount(url):
                     actionsSubject.send(.manageAccount(url: url))
-                case .analytics:
-                    actionsSubject.send(.analytics)
                 case .appLock:
                     actionsSubject.send(.appLock)
                 case .reportBug:

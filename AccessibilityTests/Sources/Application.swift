@@ -26,7 +26,7 @@ enum Application {
     private static func checkEnvironments() {
         guard UIDevice.current.userInterfaceIdiom == .phone else {
             XCTFail("Accessibility tests should be run on a phone.")
-            fatalError("Accessibility tests should be run on a phone.")
+            return
         }
     }
 }

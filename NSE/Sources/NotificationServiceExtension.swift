@@ -31,19 +31,26 @@ import UserNotifications
 
 class NotificationServiceExtension: UNNotificationServiceExtension {
     static let receivedWhileOfflineNotificationID = "im.g.message.receivedWhileOfflineNotification"
-    
+
     private static var targetConfiguration: Target.ConfigurationResult?
-    
-    private static var hasHandledFirstNotificationSinceBoot = false
+
+    /// Lock protecting `hasHandledFirstNotificationSinceBoot` from concurrent access.
+    private static let firstNotificationLock = NSLock()
+    private static var _hasHandledFirstNotificationSinceBoot = false
     private static let firstNotificationThreshold: TimeInterval = 15 * 60
-    
+
     private let settings: CommonSettingsProtocol = AppSettings()
     private let appHooks: AppHooks
-    
-    private var notificationHandler: NotificationHandler?
+
+    /// Per-request handlers keyed by notification request identifier.
+    /// iOS may call didReceive concurrently on the same instance; a single
+    /// `notificationHandler` property would be overwritten by later requests.
+    private let handlersLock = NSLock()
+    private var notificationHandlers = [String: NotificationHandler]()
+
     private let keychainController = KeychainController(service: .sessions,
                                                         accessGroup: InfoPlistReader.main.keychainAccessGroupIdentifier)
-    
+
     private var cancellables: Set<AnyCancellable> = []
     
     /// We can make the whole NSE a MainActor after https://github.com/swiftlang/swift-evolution/blob/main/proposals/0371-isolated-synchronous-deinit.md
@@ -75,8 +82,10 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
     override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
         Task { await handle(request, withContentHandler: contentHandler) }
     }
-    
+
     private func handle(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) async {
+        let requestID = request.identifier
+
         // If we skipped configuring the target it means we can't write to the app group, so we're unlikely to
         // be able to create a session (and even if we could, we would be missing the lightweightTokioRuntime).
         // Additionally, APNs servers only store the most recent notification when the device is powered off.
@@ -85,16 +94,15 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
             // MXLog isn't configured:
             // swiftlint:disable:next print_deprecation
             print("Device is locked after reboot.")
-            
-            if Self.hasHandledFirstNotificationSinceBoot {
+
+            if Self.claimFirstNotificationSinceBoot() == false {
                 return contentHandler(request.content)
             } else {
-                Self.hasHandledFirstNotificationSinceBoot = true
                 deliverReceivedWhileOfflineNotification(for: request)
                 return contentHandler(.init())
             }
         }
-        
+
         guard !shouldDeliverReceivedWhileOfflineNotification() else {
             // Don't log until the app hooks have been run:
             // swiftlint:disable:next print_deprecation
@@ -102,76 +110,104 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
             deliverReceivedWhileOfflineNotification(for: request)
             return contentHandler(.init())
         }
-        
+
         guard let roomID = request.content.roomID else {
             // Don't log until the app hooks have been run:
             // swiftlint:disable:next print_deprecation
             print("Missing roomID, bailing out.")
             return contentHandler(request.content)
         }
-        
+
         guard let eventID = request.content.eventID else {
             // Don't log until the app hooks have been run:
             // swiftlint:disable:next print_deprecation
             print("Missing eventID, bailing out.")
             return contentHandler(request.content)
         }
-        
+
         guard let clientID = request.content.pusherNotificationClientIdentifier else {
             // Don't log until the app hooks have been run:
             // swiftlint:disable:next print_deprecation
             print("Missing clientID, bailing out.")
             return contentHandler(request.content)
         }
-        
+
         guard let credentials = keychainController.restorationTokens().first(where: { $0.restorationToken.pusherNotificationClientIdentifier == clientID }) else {
             // Don't log until the app hooks have been run:
             // swiftlint:disable:next print_deprecation
             print("Credentials not found, bailing out.")
             return contentHandler(request.content)
         }
-        
+
         let homeserverURL = credentials.restorationToken.session.homeserverUrl
         await appHooks.remoteSettingsHook.loadCache(forHomeserver: homeserverURL, applyingTo: settings)
-        
+
         guard let mutableContent = request.content.mutableCopy() as? UNMutableNotificationContent else {
             return contentHandler(request.content)
         }
-        
+
         MXLog.info("\(tag) #########################################")
-        
+
         ExtensionLogger.logMemory(with: tag)
-        
+
         MXLog.info("\(tag) Received payload: \(request.content.userInfo)")
-        
+
         do {
             let userSession = try await NSEUserSession(credentials: credentials,
                                                        roomID: roomID,
                                                        clientSessionDelegate: keychainController,
                                                        appHooks: appHooks,
                                                        appSettings: settings)
-            
-            notificationHandler = NotificationHandler(userSession: userSession,
-                                                      settings: settings,
-                                                      contentHandler: contentHandler,
-                                                      notificationContent: mutableContent,
-                                                      tag: tag)
-            
+
+            let handler = NotificationHandler(userSession: userSession,
+                                              settings: settings,
+                                              contentHandler: contentHandler,
+                                              notificationContent: mutableContent,
+                                              tag: tag)
+
+            handlersLock.withLock {
+                notificationHandlers[requestID] = handler
+            }
+
             ExtensionLogger.logMemory(with: tag)
             MXLog.info("\(tag) Configured user session")
-            
-            await notificationHandler?.processEvent(eventID, roomID: roomID)
+
+            await handler.processEvent(eventID, roomID: roomID)
+
+            handlersLock.withLock {
+                notificationHandlers.removeValue(forKey: requestID)
+            }
         } catch {
             MXLog.error("Failed creating user session with error: \(error)")
+            contentHandler(request.content)
         }
     }
-    
+
     override func serviceExtensionTimeWillExpire() {
-        notificationHandler?.handleTimeExpiration()
+        // Notify all in-flight handlers that time is expiring.
+        let handlers: [NotificationHandler] = handlersLock.withLock {
+            Array(notificationHandlers.values)
+        }
+        for handler in handlers {
+            handler.handleTimeExpiration()
+        }
     }
     
     // MARK: - Boot handling
     
+    /// Atomically checks and sets the first-notification flag.
+    /// Returns `true` if this call claimed the first notification (i.e. the flag was previously `false`).
+    /// Returns `false` if another thread already claimed it.
+    private static func claimFirstNotificationSinceBoot() -> Bool {
+        firstNotificationLock.withLock {
+            if _hasHandledFirstNotificationSinceBoot {
+                return false
+            }
+            _hasHandledFirstNotificationSinceBoot = true
+            return true
+        }
+    }
+
     /// The APNs servers only store the most recent notification when delivery fails. So when the user first boots
     /// their phone we need to use some approximations to decide whether or not the first notification may potentially
     /// represent more than one message. When that appears possible we replace the notification's content with the special
@@ -180,37 +216,35 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
     /// Note that this only handles the first-boot case. When the SDK is able to compute the unread count, we should start to use the NSE,
     /// remote-notifications (content-available) and background app refreshes to fetch and deliver our notifications as a more robust solution.
     private func shouldDeliverReceivedWhileOfflineNotification() -> Bool {
-        if Self.hasHandledFirstNotificationSinceBoot {
-            // If we've already handled the first notification in this process there's no need to continue.
+        // Atomically claim the first-notification slot; if already claimed, skip.
+        guard Self.claimFirstNotificationSinceBoot() else {
             return false
         }
-        
-        Self.hasHandledFirstNotificationSinceBoot = true
-        
+
         guard let currentBootTime = BootDetectionManager.systemBootTime() else {
             // There's not much we can do if the boot time is unknown, so don't show the offline notification.
             return false
         }
-        
+
         guard let lastKnownBootTime = settings.lastNotificationBootTime else {
-            // Assume a missing boot time indicates a fresh installation…
+            // Assume a missing boot time indicates a fresh installation...
             // So store the current boot time but let the notification through.
             settings.lastNotificationBootTime = currentBootTime
             return false
         }
-        
+
         if abs(lastKnownBootTime - currentBootTime) < 1 {
             return false
         }
-        
+
         // This is the first notification since boot, store the boot time.
         settings.lastNotificationBootTime = currentBootTime
-        
+
         // At this point it becomes a trade-off. Once the device has been powered on for a long enough amount
         // of time it is a reasonable assumption that the device has now connected to a network and that any
         // notification is actually new rather than having been sent whilst the device was powered off.
         //
-        // Note: We could actually solve this by having Sygnal add a timestamp to the notification payload 🤔
+        // Note: We could actually solve this by having Sygnal add a timestamp to the notification payload
         if Date.now.timeIntervalSince(Date(timeIntervalSince1970: currentBootTime)) > Self.firstNotificationThreshold {
             return false
         } else {

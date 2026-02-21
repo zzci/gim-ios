@@ -32,18 +32,16 @@ class UserFlowTests: XCTestCase {
     
     /// Assumes app is on the home screen
     private func checkRoomFlows() {
-        // Wait for the room list to paginate and correctly compute the room display names otherwise the test room
-        // won't be found
-        // Remove once https://github.com/element-hq/element-x-ios/issues/3365 gets sorted
-        sleep(30)
-        
-        // Search for the special test room
+        // Wait for the room list to paginate and correctly compute the room display names.
+        // Use the search field's existence as a readiness signal, then rely on the room button's
+        // waitForExistence with an extended timeout instead of a fixed sleep(30).
         let searchField = app.searchFields.firstMatch
+        XCTAssertTrue(searchField.waitForExistence(timeout: 30.0))
         searchField.clearAndTypeText(Self.integrationTestsRoomName, app: app)
         
-        // And open it
+        // And open it (extended timeout to allow room list pagination to complete)
         let firstRoom = app.buttons.matching(NSPredicate(format: "identifier CONTAINS %@", Self.integrationTestsRoomName)).firstMatch
-        XCTAssertTrue(firstRoom.waitForExistence(timeout: 10.0))
+        XCTAssertTrue(firstRoom.waitForExistence(timeout: 60.0))
         firstRoom.tap(.center)
         
         sendMessages()
@@ -71,63 +69,71 @@ class UserFlowTests: XCTestCase {
         var composerTextField = app.textViews[A11yIdentifiers.roomScreen.messageComposer].firstMatch
         XCTAssertTrue(composerTextField.waitForExistence(timeout: 10.0))
         composerTextField.clearAndTypeText(Self.integrationTestsMessage, app: app)
-        
+
         var sendButton = app.buttons[A11yIdentifiers.roomScreen.sendButton].firstMatch
         XCTAssertTrue(sendButton.waitForExistence(timeout: 10.0))
         sendButton.tap(.center)
-        
-        sleep(10) // Wait for the message to be sent
-        
+
+        // Wait for the send button to disappear (composer resets after sending)
+        waitForSendButtonToDisappear()
+
         // Switch to the rich text editor
         tapOnButton(A11yIdentifiers.roomScreen.composerToolbar.openComposeOptions)
         tapOnButton(A11yIdentifiers.roomScreen.attachmentPickerTextFormatting)
-        
+
         composerTextField = app.textViews[A11yIdentifiers.roomScreen.messageComposer].firstMatch
         XCTAssertTrue(composerTextField.waitForExistence(timeout: 10.0))
         composerTextField.clearAndTypeText(Self.integrationTestsMessage, app: app)
-        
+
         sendButton = app.buttons[A11yIdentifiers.roomScreen.sendButton].firstMatch
         XCTAssertTrue(sendButton.waitForExistence(timeout: 10.0))
         sendButton.tap(.center)
-        
-        sleep(5) // Wait for the message to be sent
-        
+
+        // Wait for the send button to disappear (composer resets after sending)
+        waitForSendButtonToDisappear()
+
         // Close the formatting options
         app.buttons[A11yIdentifiers.roomScreen.composerToolbar.closeFormattingOptions].tap(.center)
+    }
+
+    private func waitForSendButtonToDisappear() {
+        let sendButton = app.buttons[A11yIdentifiers.roomScreen.sendButton].firstMatch
+        let doesNotExist = NSPredicate(format: "exists == 0")
+        expectation(for: doesNotExist, evaluatedWith: sendButton)
+        waitForExpectations(timeout: 30.0)
     }
         
     private func checkPhotoSharing() {
         tapOnButton(A11yIdentifiers.roomScreen.composerToolbar.openComposeOptions)
         tapOnButton(A11yIdentifiers.roomScreen.attachmentPickerPhotoLibrary)
-        
-        sleep(10) // Wait for the picker to load
-        
-        // Tap on the second image. First one is always broken on simulators.
+
+        // Wait for the picker to load by checking for images
         let secondImage = app.scrollViews.images.element(boundBy: 1)
-        XCTAssertTrue(secondImage.waitForExistence(timeout: 20.0)) // Photo library takes a bit to load
+        XCTAssertTrue(secondImage.waitForExistence(timeout: 30.0))
         secondImage.tap(.center)
-        
-        // Wait for the image to be processed and the new screen to appear
-        sleep(10)
-        
+
+        // Wait for the cancel button on the upload preview screen to appear
+        let cancelButton = app.buttons["Cancel"]
+        XCTAssertTrue(cancelButton.waitForExistence(timeout: 20.0))
+
         // Cancel the upload flow
         tapOnButton("Cancel", waitForDisappearance: true)
     }
-    
+
     private func checkDocumentSharing() {
         tapOnButton(A11yIdentifiers.roomScreen.composerToolbar.openComposeOptions)
         tapOnButton(A11yIdentifiers.roomScreen.attachmentPickerDocuments)
-        
-        sleep(10) // Wait for the picker to load
-        
+
+        // Wait for the document picker cancel button to appear
+        let cancelButton = app.buttons["Cancel"]
+        XCTAssertTrue(cancelButton.waitForExistence(timeout: 20.0))
+
         tapOnButton("Cancel", waitForDisappearance: true)
     }
-    
+
     private func checkLocationSharing() {
         tapOnButton(A11yIdentifiers.roomScreen.composerToolbar.openComposeOptions)
         tapOnButton(A11yIdentifiers.roomScreen.attachmentPickerLocation)
-        
-        sleep(10) // Wait for the picker to load
         
         // The order of the alerts is a bit of a mistery so try twice
         

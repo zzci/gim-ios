@@ -7,6 +7,7 @@
 //
 
 import Combine
+import CryptoKit
 import Foundation
 import GZIP
 import Sentry
@@ -116,27 +117,25 @@ class BugReportService: NSObject, BugReportServiceProtocol {
         scope.setExtra(value: "iOS", key: "user_agent")
         scope.setExtra(value: os, key: "os")
         scope.setExtra(value: "\(InfoPlistReader.main.bundleShortVersionString) (\(GitVersion.commitHash))", key: "version")
-        scope.setExtra(value: Bundle.app.preferredLocalizations.joined(separator: ", "), key: "resolved_languages")
-        scope.setExtra(value: Locale.preferredLanguages.joined(separator: ", "), key: "user_languages")
-        scope.setExtra(value: Bundle.app.developmentLocalization ?? "null", key: "fallback_language")
-        scope.setExtra(value: localTime, key: "local_time")
         scope.setExtra(value: utcTime, key: "utc_time")
         scope.setExtra(value: String(bugReport.canContact), key: "can_contact")
 
+        // SENTRY-005: Hash user-identifiable fields before sending to Sentry.
         if let userID = bugReport.userID {
-            scope.setTag(value: userID, key: "user_id")
+            scope.setTag(value: sha256(userID), key: "user_id_hash")
         }
 
         if let deviceID = bugReport.deviceID {
-            scope.setTag(value: deviceID, key: "device_id")
+            scope.setTag(value: sha256(deviceID), key: "device_id_hash")
         }
 
+        // Crypto keys are only needed for E2EE debugging; send truncated hashes.
         if let ed25519 = bugReport.ed25519 {
-            scope.setTag(value: ed25519, key: "ed25519")
+            scope.setTag(value: String(sha256(ed25519).prefix(16)), key: "ed25519_hash")
         }
 
         if let curve25519 = bugReport.curve25519 {
-            scope.setTag(value: curve25519, key: "curve25519")
+            scope.setTag(value: String(sha256(curve25519).prefix(16)), key: "curve25519_hash")
         }
 
         if let crashEventID = lastCrashEventID {
@@ -150,6 +149,12 @@ class BugReportService: NSObject, BugReportServiceProtocol {
         for attachmentURL in attachments {
             scope.addAttachment(SentryAttachment(path: attachmentURL.path))
         }
+    }
+
+    private func sha256(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
     }
 
     private func localAndUTCTime(for date: Date) -> (String, String) {

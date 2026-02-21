@@ -10,6 +10,15 @@ import Foundation
 
 enum ShareExtensionConstants {
     static let urlPath = "share"
+    /// Maximum byte length for URL-encoded payloads before falling back to file-based transfer.
+    static let maxURLPayloadSize = 2000
+    /// File name used to pass large payloads through the App Group container.
+    static let payloadFileName = "sharePayload.json"
+
+    /// URL of the payload file inside the App Group temporary directory.
+    static var payloadFileURL: URL {
+        URL.appGroupTemporaryDirectory.appendingPathComponent(payloadFileName)
+    }
 }
 
 enum ShareExtensionPayload: Hashable, Codable {

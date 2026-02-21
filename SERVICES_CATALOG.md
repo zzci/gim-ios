@@ -35,7 +35,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 **Key Files:**
 - `AnalyticsClientProtocol.swift` - Interface for analytics clients
 - `AnalyticsService.swift` - Main service managing analytics state and events
-- `PostHogAnalyticsClient.swift` - PostHog implementation
+- `NoopAnalyticsClient.swift` - No-op implementation (PostHog removed)
 - `Signposter.swift` - Performance profiling
 - `UserPropertiesExt.swift` - User property helpers
 
@@ -46,7 +46,7 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 
 **Responsibilities:**
 - Manage analytics opt-in/opt-out consent
-- Route analytics events to PostHog or other clients
+- Route analytics events to the configured analytics client
 - Track screens, interactions, errors, room events
 - Monitor session security state changes
 - Update user properties for segmentation
@@ -54,7 +54,6 @@ The services layer is organized around the MVVM-Coordinator architecture. Servic
 **Dependencies:**
 - `AppSettings` - Configuration and consent state
 - `AnalyticsEvents` package - Shared event schemas
-- `PostHog` framework - Analytics backend
 
 **Notable Patterns:**
 - Uses shared event definitions from matrix-analytics-events repo

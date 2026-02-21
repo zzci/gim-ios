@@ -56,7 +56,7 @@ class AnalyticsService {
     func optOut() {
         appSettings.analyticsConsentState = .optedOut
         
-        // The order is important here. PostHog ignores the reset if stopped.
+        // The order is important here. Some analytics clients ignore the reset if stopped.
         reset()
         client.stop()
 
@@ -78,7 +78,7 @@ class AnalyticsService {
     /// Resets the any IDs and event queues in the analytics client. This method should
     /// be called on sign-out to maintain opt-in status, whilst ensuring the next
     /// account used isn't associated with the previous one.
-    /// Note: **MUST** be called before stopping PostHog or the reset is ignored.
+    /// Note: **MUST** be called before stopping the analytics client or the reset may be ignored.
     func reset() {
         client.reset()
         MXLog.info("Reset.")

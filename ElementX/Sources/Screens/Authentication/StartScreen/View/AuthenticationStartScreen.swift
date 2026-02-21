@@ -54,6 +54,16 @@ struct AuthenticationStartScreen: View {
         .onTapGesture {
             isTextFieldFocused = false
         }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                context.send(viewAction: .diagnostics)
+            } label: {
+                CompoundIcon(\.settings, size: .medium, relativeTo: .compound.bodyLG)
+                    .foregroundStyle(.compound.iconSecondary)
+                    .padding(16)
+            }
+            .accessibilityIdentifier(A11yIdentifiers.authenticationStartScreen.diagnostics)
+        }
         .navigationBarHidden(true)
         .background {
             AuthenticationStartScreenBackgroundImage()

@@ -36,17 +36,18 @@ enum Application {
         let requirediPhoneSimulator = "iPhone18,3" // iPhone 17
         let requirediPadSimulator = "iPad15,7" // iPad (A16)
         let requiredOSVersion = (major: 26, minor: 1)
-        
+
         let osVersion = ProcessInfo().operatingSystemVersion
-        guard osVersion.majorVersion == requiredOSVersion.major, osVersion.minorVersion == requiredOSVersion.minor else {
-            fatalError("Switch to iOS \(requiredOSVersion.major).\(requiredOSVersion.minor) for these tests.")
+        if osVersion.majorVersion != requiredOSVersion.major || osVersion.minorVersion != requiredOSVersion.minor {
+            XCTFail("Switch to iOS \(requiredOSVersion.major).\(requiredOSVersion.minor) for these tests. Current: \(osVersion.majorVersion).\(osVersion.minorVersion)")
         }
-        
+
         guard let deviceModel = ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] else {
-            fatalError("Unknown simulator.")
+            XCTFail("Unknown simulator: SIMULATOR_MODEL_IDENTIFIER not set.")
+            return
         }
-        guard deviceModel == requirediPhoneSimulator || deviceModel == requirediPadSimulator else {
-            fatalError("Running on \(deviceModel) but we only support \(requirediPhoneSimulator) and \(requirediPadSimulator).")
+        if deviceModel != requirediPhoneSimulator && deviceModel != requirediPadSimulator {
+            XCTFail("Running on \(deviceModel) but we only support \(requirediPhoneSimulator) and \(requirediPadSimulator).")
         }
     }
 }
@@ -92,7 +93,9 @@ extension XCUIApplication {
         switch UIDevice.current.userInterfaceIdiom {
         case .pad: return "iPad"
         case .phone: return "iPhone"
-        default: fatalError("Unsupported device type: \(UIDevice.current.userInterfaceIdiom)")
+        default:
+            XCTFail("Unsupported device type: \(UIDevice.current.userInterfaceIdiom)")
+            return "Unknown"
         }
     }
     

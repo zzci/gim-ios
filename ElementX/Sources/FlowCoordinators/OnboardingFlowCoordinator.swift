@@ -19,7 +19,6 @@ enum OnboardingFlowCoordinatorAction {
 class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
     private let userSession: UserSessionProtocol
     private let appLockService: AppLockServiceProtocol
-    private let analyticsService: AnalyticsService
     private let appSettings: AppSettings
     private let notificationManager: NotificationManagerProtocol
     private let userIndicatorController: UserIndicatorControllerProtocol
@@ -33,7 +32,6 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         case identityConfirmation
         case identityConfirmed
         case appLockSetup
-        case analyticsPrompt
         case notificationPermissions
         case finished
     }
@@ -65,7 +63,6 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         self.isNewLogin = isNewLogin
         userSession = flowParameters.userSession
         self.appLockService = appLockService
-        analyticsService = flowParameters.analytics
         appSettings = flowParameters.appSettings
         notificationManager = flowParameters.notificationManager
         userIndicatorController = flowParameters.userIndicatorController
@@ -100,7 +97,7 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
             return false
         }
         
-        return isNewLogin || requiresVerification || requiresAppLockSetup || requiresAnalyticsSetup || requiresNotificationsSetup
+        return isNewLogin || requiresVerification || requiresAppLockSetup || requiresNotificationsSetup
     }
     
     func start(animated: Bool) {
@@ -132,10 +129,6 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         appSettings.appLockIsMandatory && !appLockService.isEnabled
     }
     
-    private var requiresAnalyticsSetup: Bool {
-        analyticsService.shouldShowAnalyticsPrompt
-    }
-    
     private var requiresNotificationsSetup: Bool {
         !appSettings.hasRunNotificationPermissionsOnboarding
     }
@@ -147,59 +140,46 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 return nil
             }
             
-            switch (fromState, requiresVerification, requiresAppLockSetup, requiresAnalyticsSetup, requiresNotificationsSetup) {
-            case (.initial, true, _, _, _):
+            switch (fromState, requiresVerification, requiresAppLockSetup, requiresNotificationsSetup) {
+            case (.initial, true, _, _):
                 return .identityConfirmation
-            case (.initial, false, true, _, _):
+            case (.initial, false, true, _):
                 return .appLockSetup
-            case (.initial, false, false, true, _):
-                return .analyticsPrompt
-            case (.initial, false, false, false, true):
+            case (.initial, false, false, true):
                 return .notificationPermissions
-            case (.initial, false, false, false, false):
+            case (.initial, false, false, false):
                 return .finished
-                
-            case (.identityConfirmation, _, _, _, _):
+
+            case (.identityConfirmation, _, _, _):
                 if event == .nextSkippingIdentityConfirmed {
                     // Used when the verification state has updated to verified
                     // after starting the onboarding flow
-                    switch (requiresAppLockSetup, requiresAnalyticsSetup, requiresNotificationsSetup) {
-                    case (true, _, _):
+                    switch (requiresAppLockSetup, requiresNotificationsSetup) {
+                    case (true, _):
                         return .appLockSetup
-                    case (false, true, _):
-                        return .analyticsPrompt
-                    case (false, false, true):
+                    case (false, true):
                         return .notificationPermissions
-                    case (false, false, false):
+                    case (false, false):
                         return .finished
                     }
                 } else {
                     return .identityConfirmed
                 }
-            case (.identityConfirmed, _, true, _, _):
+            case (.identityConfirmed, _, true, _):
                 return .appLockSetup
-            case (.identityConfirmed, _, false, true, _):
-                return .analyticsPrompt
-            case (.identityConfirmed, _, false, false, true):
+            case (.identityConfirmed, _, false, true):
                 return .notificationPermissions
-            case (.identityConfirmed, _, false, false, false):
+            case (.identityConfirmed, _, false, false):
                 return .finished
-                
-            case (.appLockSetup, _, _, true, _):
-                return .analyticsPrompt
-            case (.appLockSetup, _, _, false, true):
+
+            case (.appLockSetup, _, _, true):
                 return .notificationPermissions
-            case (.appLockSetup, _, _, false, false):
+            case (.appLockSetup, _, _, false):
                 return .finished
-                
-            case (.analyticsPrompt, _, _, _, true):
-                return .notificationPermissions
-            case (.analyticsPrompt, _, _, _, false):
+
+            case (.notificationPermissions, _, _, _):
                 return .finished
-                
-            case (.notificationPermissions, _, _, _, _):
-                return .finished
-            
+
             default:
                 return nil
             }
@@ -215,8 +195,6 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
                 presentIdentityConfirmedScreen()
             case (_, _, .appLockSetup):
                 presentAppLockSetupFlow()
-            case (_, _, .analyticsPrompt):
-                presentAnalyticsPromptScreen()
             case (_, _, .notificationPermissions):
                 presentNotificationPermissionsScreen()
             case (_, _, .finished):
@@ -375,22 +353,6 @@ class OnboardingFlowCoordinator: FlowCoordinatorProtocol {
         coordinator.start()
     }
 
-    private func presentAnalyticsPromptScreen() {
-        let coordinator = AnalyticsPromptScreenCoordinator(analytics: analyticsService, termsURL: appSettings.analyticsTermsURL)
-        
-        coordinator.actions
-            .sink { [weak self] action in
-                guard let self else { return }
-                switch action {
-                case .done:
-                    stateMachine.tryEvent(.next)
-                }
-            }
-            .store(in: &cancellables)
-        
-        presentCoordinator(coordinator)
-    }
-    
     private func presentNotificationPermissionsScreen() {
         let coordinator = NotificationPermissionsScreenCoordinator(parameters: .init(notificationManager: notificationManager))
         
