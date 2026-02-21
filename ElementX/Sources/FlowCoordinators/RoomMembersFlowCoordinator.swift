@@ -299,7 +299,9 @@ final class RoomMembersFlowCoordinator: FlowCoordinatorProtocol {
         
         // Replace the RoomMemberDetailsScreen without any animation.
         // If this pop and push happens before the previous navigation is completed it might break screen presentation logic
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let self else { return }
             self.navigationStackCoordinator.pop(animated: false)
             self.navigationStackCoordinator.push(coordinator, animated: false) { [weak self] in
                 self?.stateMachine.tryEvent(.dismissedUserProfile)

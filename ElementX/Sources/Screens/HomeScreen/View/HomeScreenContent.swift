@@ -26,7 +26,7 @@ struct HomeScreenContent: View {
                 switch context.viewState.roomListMode {
                 case .skeletons:
                     LazyVStack(spacing: 0) {
-                        ForEach(context.viewState.visibleRooms) { room in
+                        ForEach(context.viewState.visibleRooms, id: \.id) { room in
                             HomeScreenRoomCell(room: room, isSelected: false, mediaProvider: context.mediaProvider, action: context.send)
                                 .redacted(reason: .placeholder)
                                 .shimmer() // Putting this directly on the LazyVStack creates an accordion animation on iOS 16.
@@ -64,39 +64,16 @@ struct HomeScreenContent: View {
                 scrollViewAdapter.scrollView = scrollView
             }
             .onReceive(scrollViewAdapter.didScroll) { _ in
-                updateVisibleRange()
+                scheduleVisibleRangeUpdate()
             }
             .onReceive(scrollViewAdapter.isScrolling) { _ in
-                updateVisibleRange()
+                scheduleVisibleRangeUpdate()
             }
             .onChange(of: context.searchQuery) {
-                updateVisibleRange()
+                scheduleVisibleRangeUpdate()
             }
             .onChange(of: context.viewState.visibleRooms) {
-                updateVisibleRange()
-                
-                // We have been seeing a lot of issues around the room list not updating properly after
-                // rooms shifting around:
-                // * Tapping on the room list doesn't always take you to the right room  - https://github.com/element-hq/element-x-ios/issues/2386
-                // * Big blank gaps in the room list - https://github.com/element-hq/element-x-ios/issues/3026
-                //
-                // We initially thought it's caused by the filters header or the geometry reader but
-                // the problem is still reproducible without those.
-                //
-                // As a last attempt we will manually force it to update by shifting the
-                // inner scroll view by a point every time the room list is updated
-                DispatchQueue.main.async {
-                    guard !scrollViewAdapter.isScrolling.value, let scrollView = scrollViewAdapter.scrollView else {
-                        return
-                    }
-                    
-                    let oldOffset = scrollView.contentOffset
-                    var newOffset = scrollView.contentOffset
-                    newOffset.y += 1
-                    
-                    scrollView.setContentOffset(newOffset, animated: false)
-                    scrollView.setContentOffset(oldOffset, animated: false)
-                }
+                scheduleVisibleRangeUpdate()
             }
             .background {
                 Button("") {
@@ -138,14 +115,21 @@ struct HomeScreenContent: View {
         }
     }
     
-    /// Often times the scroll view's content size isn't correct yet when this method is called e.g. when cancelling a search
-    /// Dispatch it with a delay to allow the UI to update and the computations to be correct
-    /// Once we move to iOS 17 we should remove all of this and use scroll anchors instead
-    private func updateVisibleRange() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { delayedUpdateVisibleRange() }
+    @State private var visibleRangeUpdateTask: Task<Void, Never>?
+
+    /// Debounces multiple visible range update requests. Cancels the previous pending
+    /// computation and waits 500ms before executing, preventing redundant calls
+    /// from rapid scroll/filter events while allowing the UI to settle.
+    private func scheduleVisibleRangeUpdate() {
+        visibleRangeUpdateTask?.cancel()
+        visibleRangeUpdateTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            computeVisibleRange()
+        }
     }
-    
-    private func delayedUpdateVisibleRange() {
+
+    private func computeVisibleRange() {
         guard let scrollView = scrollViewAdapter.scrollView,
               scrollViewAdapter.isScrolling.value == false, // Ignore while scrolling
               context.searchQuery.isEmpty == true, // Ignore while filtering

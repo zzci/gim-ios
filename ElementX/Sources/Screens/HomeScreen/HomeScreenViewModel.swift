@@ -125,8 +125,11 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
             .sink { [weak self] isSearchFieldFocused, _, _ in
                 guard let self else { return }
                 // isSearchFieldFocused` is sometimes turning to true after cancelling the search. So to be extra sure we are updating the values correctly we read them directly in the next run loop, and we add a small delay if the value has changed
-                let delay = isSearchFieldFocused == self.context.viewState.bindings.isSearchFieldFocused ? 0.0 : 0.05
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                let delay = isSearchFieldFocused == self.context.viewState.bindings.isSearchFieldFocused ? 0 : 50
+                Task {
+                    if delay > 0 {
+                        try? await Task.sleep(for: .milliseconds(delay))
+                    }
                     self.updateFilter()
                 }
             }
@@ -217,7 +220,8 @@ class HomeScreenViewModel: HomeScreenViewModelType, HomeScreenViewModelProtocol 
     // perphery: ignore - used in release mode
     func presentCrashedLastRunAlert() {
         // Delay setting the alert otherwise it automatically gets dismissed. Same as the force logout one.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
             self.state.bindings.alertInfo = AlertInfo(id: UUID(),
                                                       title: L10n.crashDetectionDialogContent(InfoPlistReader.main.bundleDisplayName),
                                                       primaryButton: .init(title: L10n.actionNo, action: nil),
