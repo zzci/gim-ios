@@ -353,6 +353,7 @@ class RoomSummaryProvider: RoomSummaryProviderProtocol {
 
             changes.append(.remove(offset: rooms.count - 1, element: value, associatedWith: nil))
         case .popFront:
+            guard !rooms.isEmpty else { break }
             let summary = rooms[0]
             changes.append(.remove(offset: 0, element: summary, associatedWith: nil))
         case .pushBack(let value):
