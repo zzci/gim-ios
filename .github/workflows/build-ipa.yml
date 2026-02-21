@@ -99,7 +99,21 @@ jobs:
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            > build.log 2>&1 || BUILD_FAILED=1
+          if [ "${BUILD_FAILED:-}" = "1" ]; then
+            echo "::error::xcodebuild archive failed"
+            echo ""
+            echo "=== ERRORS ==="
+            grep -A3 "error:" build.log | head -100 || echo "(no error: lines found)"
+            echo ""
+            echo "=== LAST 100 LINES ==="
+            tail -100 build.log
+            exit 65
+          else
+            echo "Archive succeeded"
+            tail -5 build.log
+          fi
 
       - name: Package IPA
         run: |
