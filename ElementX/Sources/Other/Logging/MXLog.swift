@@ -13,12 +13,23 @@ import MatrixRustSDK
 /// Logging utility that provies multiple logging levels as well as file output and rolling.
 /// Its purpose is to provide a common entry for customizing logging and should be used throughout the code.
 enum MXLog {
-    private nonisolated(unsafe) static var rootSpan: Span!
-    private nonisolated(unsafe) static var currentTarget: String!
-    
+    private static let lock = NSLock()
+    private nonisolated(unsafe) static var _rootSpan: Span!
+    private nonisolated(unsafe) static var _currentTarget: String!
+
+    private static var rootSpan: Span! {
+        get { lock.withLock { _rootSpan } }
+        set { lock.withLock { _rootSpan = newValue } }
+    }
+
+    private static var currentTarget: String! {
+        get { lock.withLock { _currentTarget } }
+        set { lock.withLock { _currentTarget = newValue } }
+    }
+
     static func configure(currentTarget: String) {
         self.currentTarget = currentTarget
-        
+
         rootSpan = Span(file: #file, line: #line, level: .info, target: self.currentTarget, name: "root", bridgeTraceId: nil)
         rootSpan.enter()
     }
@@ -95,7 +106,10 @@ enum MXLog {
     }
     
     #if DEBUG
-    private static let devPrefix = URL.documentsDirectory.pathComponents[2].uppercased()
+    private static let devPrefix: String = {
+        let components = URL.documentsDirectory.pathComponents
+        return components.count > 2 ? components[2].uppercased() : "UNKNOWN"
+    }()
     /// A helper method for print debugging, only available on debug builds.
     ///
     /// When running on the simulator this will log `[USERNAME] message` so that
