@@ -116,7 +116,15 @@ jobs:
 
       - name: Package IPA
         run: |
-          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -name "*.app" -maxdepth 1)
+          echo "Archive contents:"
+          find "$ARCHIVE_PATH" -name "*.app" -type d 2>/dev/null || true
+          APP_PATH=$(find "$ARCHIVE_PATH" -name "*.app" -type d -maxdepth 4 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: No .app found in archive" >&2
+            ls -la "$ARCHIVE_PATH/" 2>/dev/null || true
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
           mkdir -p build/Payload
           cp -R "$APP_PATH" build/Payload/
           cd build && zip -r -9 ElementX-unsigned.ipa Payload
