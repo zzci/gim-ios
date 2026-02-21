@@ -167,3 +167,11 @@ xcodegen  # regenerate project after
 - **UnitTests, PreviewTests, UITests, AccessibilityTests, IntegrationTests** — Test targets
 - **SDKMocks** — Shared mock types for the Matrix Rust SDK
 - **Periphery** — Aggregate target for dead code detection
+
+## Project Task
+
+Use the /ptask skill to manage all tasks.
+- Read `task.md` before starting work; create one if it does not exist.
+- Every change, new feature, or bug fix must have a corresponding entry in `task.md`.
+- Task IDs use `PREFIX-NNN` format (e.g. `AUTH-001`); never skip or reuse IDs.
+- Update status markers in place after completing a task.
