@@ -107,6 +107,7 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
             
             changes.append(.remove(offset: results.count - 1, element: value, associatedWith: nil))
         case .popFront:
+            guard !results.isEmpty else { break }
             let result = results[0]
             changes.append(.remove(offset: 0, element: result, associatedWith: nil))
         case .pushBack(let value):
@@ -116,6 +117,7 @@ final class RoomDirectorySearchProxy: RoomDirectorySearchProxyProtocol {
             let result = buildResultForRoomDescription(value)
             changes.append(.insert(offset: 0, element: result, associatedWith: nil))
         case .remove(let index):
+            guard Int(index) < results.count else { break }
             let result = results[Int(index)]
             changes.append(.remove(offset: Int(index), element: result, associatedWith: nil))
         case .reset(let values):
