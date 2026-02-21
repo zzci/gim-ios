@@ -46,7 +46,7 @@ class AppRouteURLParserTests: XCTestCase {
     
     func testWebRoomIDURL() {
         let id = "!abcdefghijklmnopqrstuvwxyz1234567890:matrix.org"
-        guard let url = URL(string: "https://app.element.io/#/room/\(id)") else {
+        guard let url = URL(string: "https://app.g.im/#/room/\(id)") else {
             XCTFail("URL invalid")
             return
         }
@@ -58,7 +58,7 @@ class AppRouteURLParserTests: XCTestCase {
     
     func testWebUserIDURL() {
         let id = "@alice:matrix.org"
-        guard let url = URL(string: "https://develop.element.io/#/user/\(id)") else {
+        guard let url = URL(string: "https://develop.g.im/#/user/\(id)") else {
             XCTFail("URL invalid")
             return
         }

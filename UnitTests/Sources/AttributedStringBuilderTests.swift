@@ -797,14 +797,14 @@ class AttributedStringBuilderTests: XCTestCase {
     // MARK: - Phishing prevention
     
     func testPhishingLink() {
-        let htmlString = "Hey check the following link <a href=\"https://matrix.org\">https://element.io</a>"
+        let htmlString = "Hey check the following link <a href=\"https://matrix.org\">https://g.im</a>"
         
         guard let attributedString = attributedStringBuilder.fromHTML(htmlString) else {
             XCTFail("Could not build the attributed string")
             return
         }
         
-        XCTAssertEqual(String(attributedString.characters), "Hey check the following link https://element.io")
+        XCTAssertEqual(String(attributedString.characters), "Hey check the following link https://g.im")
         
         XCTAssertEqual(attributedString.runs.count, 2)
         
@@ -814,7 +814,7 @@ class AttributedStringBuilderTests: XCTestCase {
         }
         XCTAssertTrue(link.requiresConfirmation)
         XCTAssertEqual(link.confirmationParameters?.internalURL.absoluteString, "https://matrix.org")
-        XCTAssertEqual(link.confirmationParameters?.displayString, "https://element.io")
+        XCTAssertEqual(link.confirmationParameters?.displayString, "https://g.im")
     }
     
     func testValidLink() {
@@ -931,14 +931,14 @@ class AttributedStringBuilderTests: XCTestCase {
     }
     
     func testPhishingLinkWithDistractingCharacters() {
-        let htmlString = "Hey check the following link <a href=\"https://matrix.org\">👉️ https://element.io</a>"
+        let htmlString = "Hey check the following link <a href=\"https://matrix.org\">👉️ https://g.im</a>"
         
         guard let attributedString = attributedStringBuilder.fromHTML(htmlString) else {
             XCTFail("Could not build the attributed string")
             return
         }
         
-        XCTAssertEqual(String(attributedString.characters), "Hey check the following link 👉️ https://element.io")
+        XCTAssertEqual(String(attributedString.characters), "Hey check the following link 👉️ https://g.im")
         
         XCTAssertEqual(attributedString.runs.count, 2)
         
@@ -948,17 +948,17 @@ class AttributedStringBuilderTests: XCTestCase {
         }
         XCTAssertTrue(link.requiresConfirmation)
         XCTAssertEqual(link.confirmationParameters?.internalURL.absoluteString, "https://matrix.org")
-        XCTAssertEqual(link.confirmationParameters?.displayString, "👉️ https://element.io")
+        XCTAssertEqual(link.confirmationParameters?.displayString, "👉️ https://g.im")
     }
     
     func testValidLinkWithDistractingCharacters() {
-        let htmlString = "Hey check the following link <a href=\"https://element.io\">👉️ https://element.io</a>"
+        let htmlString = "Hey check the following link <a href=\"https://g.im\">👉️ https://g.im</a>"
         
         guard let attributedString = attributedStringBuilder.fromHTML(htmlString) else {
             XCTFail("Could not build the attributed string")
             return
         }
-        XCTAssertEqual(String(attributedString.characters), "Hey check the following link 👉️ https://element.io")
+        XCTAssertEqual(String(attributedString.characters), "Hey check the following link 👉️ https://g.im")
         
         guard let link = attributedString.runs.first(where: { $0.link != nil })?.link else {
             XCTFail("Couldn't find the link")
@@ -966,7 +966,7 @@ class AttributedStringBuilderTests: XCTestCase {
         }
         
         XCTAssertFalse(link.requiresConfirmation)
-        XCTAssertEqual(link.absoluteString, "https://element.io")
+        XCTAssertEqual(link.absoluteString, "https://g.im")
     }
     
     func testPhishingLinkWithFakeDotCharacter() {
