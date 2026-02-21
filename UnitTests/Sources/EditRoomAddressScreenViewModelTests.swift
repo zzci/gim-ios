@@ -137,7 +137,7 @@ class EditRoomAddressScreenViewModelTests: XCTestCase {
     func testCorrectMethodsCalledOnSaveWhenAliasOnOtherHomeserverExists() async {
         let clientProxy = ClientProxyMock(.init(userIDServerName: "matrix.org"))
         clientProxy.isAliasAvailableReturnValue = .success(true)
-        let roomProxy = JoinedRoomProxyMock(.init(name: "Room Name", canonicalAlias: "#old-room-name:element.io"))
+        let roomProxy = JoinedRoomProxyMock(.init(name: "Room Name", canonicalAlias: "#old-room-name:g.im"))
         
         viewModel = EditRoomAddressScreenViewModel(roomProxy: roomProxy,
                                                    clientProxy: clientProxy,
@@ -156,7 +156,7 @@ class EditRoomAddressScreenViewModelTests: XCTestCase {
         roomProxy.updateCanonicalAliasAltAliasesClosure = { roomAlias, altAliases in
             defer { updateAliasExpectation.fulfill() }
             XCTAssertEqual(altAliases, ["#room-name:matrix.org"])
-            XCTAssertEqual(roomAlias, "#old-room-name:element.io")
+            XCTAssertEqual(roomAlias, "#old-room-name:g.im")
             return .success(())
         }
         

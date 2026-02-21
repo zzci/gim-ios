@@ -83,7 +83,7 @@ class URLComponentsTests: XCTestCase {
     }
     
     func testElementCallParameters() {
-        guard let url = URL(string: "https://call.element.io/room#/callName?appPrompt=true&confineToRoom=false"),
+        guard let url = URL(string: "https://call.g.im/room#/callName?appPrompt=true&confineToRoom=false"),
               var components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             XCTFail("URL invalid")
             return
@@ -97,6 +97,6 @@ class URLComponentsTests: XCTestCase {
         components.fragmentQueryItems?.append(.init(name: "appPrompt", value: "false"))
         components.fragmentQueryItems?.append(.init(name: "confineToRoom", value: "true"))
         
-        XCTAssertEqual(components.url?.absoluteString, "https://call.element.io/room#/callName?skipLobby=true&appPrompt=false&confineToRoom=true")
+        XCTAssertEqual(components.url?.absoluteString, "https://call.g.im/room#/callName?skipLobby=true&appPrompt=false&confineToRoom=true")
     }
 }
