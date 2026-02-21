@@ -218,8 +218,10 @@ class ClientProxy: ClientProxyProtocol {
         roomListStateLoadingStateUpdateTaskHandle = createRoomListLoadingStateUpdateObserver(roomListService)
                 
         delegateHandle = try client.setDelegate(delegate: ClientDelegateWrapper { [weak self] isSoftLogout in
-            self?.hasEncounteredAuthError = true
-            self?.actionsSubject.send(.receivedAuthError(isSoftLogout: isSoftLogout))
+            DispatchQueue.main.async {
+                self?.hasEncounteredAuthError = true
+                self?.actionsSubject.send(.receivedAuthError(isSoftLogout: isSoftLogout))
+            }
         } backgroundTaskErrorCallback: { error in
             switch error {
             case .panic(let message, let backtrace):
@@ -250,7 +252,9 @@ class ClientProxy: ClientProxyProtocol {
         loadUserAvatarURLFromCache()
         
         ignoredUsersListenerTaskHandle = client.subscribeToIgnoredUsers(listener: SDKListener { [weak self] ignoredUsers in
-            self?.ignoredUsersSubject.send(ignoredUsers)
+            DispatchQueue.main.async {
+                self?.ignoredUsersSubject.send(ignoredUsers)
+            }
         })
         
         await updateVerificationState(client.encryption().verificationState())
@@ -261,7 +265,9 @@ class ClientProxy: ClientProxyProtocol {
         
         sendQueueStatusListenerTaskHandle = client.subscribeToSendQueueStatus(listener: SDKListener { [weak self] roomID, error in
             MXLog.error("Send queue failed in room: \(roomID) with error: \(error)")
-            self?.sendQueueStatusSubject.send(false)
+            DispatchQueue.main.async {
+                self?.sendQueueStatusSubject.send(false)
+            }
         })
         
         sendQueueUpdatesListenerTaskHandle = try? await client.subscribeToSendQueueUpdates(listener: SDKListener { _, update in
@@ -1039,15 +1045,17 @@ class ClientProxy: ClientProxyProtocol {
         case .verified:
             .verified
         }
-        
+
         // The session verification controller requires the user's identity which
         // isn't available before a keys query response. Use the verification
         // state updates as an aproximation for when that happens.
         await buildSessionVerificationControllerProxyIfPossible(verificationState: verificationState)
-        
+
         // Only update the session verification state after creating a session
         // verification proxy to avoid race conditions
-        verificationStateSubject.send(verificationState)
+        DispatchQueue.main.async { [weak self] in
+            self?.verificationStateSubject.send(verificationState)
+        }
     }
     
     private func buildSessionVerificationControllerProxyIfPossible(verificationState: SessionVerificationState) async {
@@ -1078,16 +1086,18 @@ class ClientProxy: ClientProxyProtocol {
     private func createSyncServiceStateObserver(_ syncService: SyncService) -> TaskHandle {
         syncService.state(listener: SDKListener { [weak self] state in
             guard let self else { return }
-            
+
             MXLog.info("Received sync service update: \(state)")
-            
-            switch state {
-            case .running, .terminated, .idle:
-                homeserverReachabilitySubject.send(.reachable)
-            case .offline:
-                homeserverReachabilitySubject.send(.unreachable)
-            case .error:
-                restartSync()
+
+            DispatchQueue.main.async {
+                switch state {
+                case .running, .terminated, .idle:
+                    self.homeserverReachabilitySubject.send(.reachable)
+                case .offline:
+                    self.homeserverReachabilitySubject.send(.unreachable)
+                case .error:
+                    self.restartSync()
+                }
             }
         })
     }
@@ -1096,14 +1106,16 @@ class ClientProxy: ClientProxyProtocol {
         do {
             return try await client.subscribeToMediaPreviewConfig(listener: SDKListener { [weak self] config in
                 guard let self else { return }
-                
-                if let config {
-                    timelineMediaVisibilitySubject.send(config.mediaPreviewVisibility)
-                    hideInviteAvatarsSubject.send(config.hideInviteAvatars)
-                } else {
-                    // return default values
-                    timelineMediaVisibilitySubject.send(.always)
-                    hideInviteAvatarsSubject.send(false)
+
+                DispatchQueue.main.async {
+                    if let config {
+                        self.timelineMediaVisibilitySubject.send(config.mediaPreviewVisibility)
+                        self.hideInviteAvatarsSubject.send(config.hideInviteAvatars)
+                    } else {
+                        // return default values
+                        self.timelineMediaVisibilitySubject.send(.always)
+                        self.hideInviteAvatarsSubject.send(false)
+                    }
                 }
             })
         } catch {
@@ -1115,20 +1127,22 @@ class ClientProxy: ClientProxyProtocol {
     private func createRoomListServiceObserver(_ roomListService: RoomListService) -> TaskHandle {
         roomListService.state(listener: SDKListener { [weak self] state in
             guard let self else { return }
-            
+
             MXLog.info("Received room list update: \(state)")
-            
+
             guard state != .error,
                   state != .terminated else {
                 // The sync service is responsible of handling error and termination
                 return
             }
-            
-            // Hide the sync spinner as soon as we get any update back
-            actionsSubject.send(.receivedSyncUpdate)
-            
-            if ignoredUsersSubject.value == nil {
-                updateIgnoredUsers()
+
+            DispatchQueue.main.async {
+                // Hide the sync spinner as soon as we get any update back
+                self.actionsSubject.send(.receivedSyncUpdate)
+
+                if self.ignoredUsersSubject.value == nil {
+                    self.updateIgnoredUsers()
+                }
             }
         })
     }
@@ -1136,12 +1150,14 @@ class ClientProxy: ClientProxyProtocol {
     private func createRoomListLoadingStateUpdateObserver(_ roomListService: RoomListService) -> TaskHandle {
         roomListService.syncIndicator(delayBeforeShowingInMs: 1000, delayBeforeHidingInMs: 0, listener: SDKListener { [weak self] state in
             guard let self else { return }
-            
-            switch state {
-            case .show:
-                loadingStateSubject.send(.loading)
-            case .hide:
-                loadingStateSubject.send(.notLoading)
+
+            DispatchQueue.main.async {
+                switch state {
+                case .show:
+                    self.loadingStateSubject.send(.loading)
+                case .hide:
+                    self.loadingStateSubject.send(.notLoading)
+                }
             }
         })
     }
@@ -1203,7 +1219,9 @@ class ClientProxy: ClientProxyProtocol {
         Task {
             do {
                 let ignoredUsers = try await client.ignoredUsers()
-                ignoredUsersSubject.send(ignoredUsers)
+                DispatchQueue.main.async { [weak self] in
+                    self?.ignoredUsersSubject.send(ignoredUsers)
+                }
             } catch {
                 MXLog.error("Failed fetching ignored users with error: \(error)")
             }
@@ -1304,7 +1322,9 @@ private final class ClientDecryptionErrorDelegate: UnableToDecryptDelegate {
     }
     
     func onUtd(info: UnableToDecryptInfo) {
-        actionsSubject.send(.receivedDecryptionError(info))
+        DispatchQueue.main.async { [weak self] in
+            self?.actionsSubject.send(.receivedDecryptionError(info))
+        }
     }
 }
 
