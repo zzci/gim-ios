@@ -29,13 +29,21 @@ jobs:
 
       - name: Select Xcode
         run: |
-          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)
+          # Prefer stable Xcode 26.x releases over betas/RCs
+          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -v -iE '(beta|release.candidate|RC)' | sort -V | tail -n1)
+          # Fall back to any Xcode 26.x if no stable version found
+          if [ -z "$XCODE_PATH" ]; then
+            XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)
+          fi
           if [ -z "$XCODE_PATH" ]; then
             echo "Error: No Xcode 26.x found in /Applications" >&2
             exit 1
           fi
           echo "Selecting Xcode at: $XCODE_PATH"
           sudo xcode-select -s "$XCODE_PATH"
+          XCODE_VERSION=$(xcodebuild -version | head -1 | sed 's/ /-/g')
+          echo "XCODE_VERSION=$XCODE_VERSION" >> "$GITHUB_ENV"
+          echo "Xcode version: $XCODE_VERSION"
 
       - name: Install brew dependencies
         run: |
@@ -73,8 +81,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: derived-${{ hashFiles('Package.resolved') }}-${{ github.sha }}
-          restore-keys: derived-${{ hashFiles('Package.resolved') }}-
+          key: derived-${{ env.XCODE_VERSION }}-${{ hashFiles('Package.resolved') }}-${{ github.sha }}
+          restore-keys: derived-${{ env.XCODE_VERSION }}-${{ hashFiles('Package.resolved') }}-
 
       - name: Clean module cache
         run: |
