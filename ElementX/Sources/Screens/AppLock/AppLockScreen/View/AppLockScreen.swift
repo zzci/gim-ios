@@ -54,6 +54,7 @@ struct AppLockScreen: View {
                 .animation(.elementDefault, value: context.viewState.forcedLogoutIndicator)
         }
         .alert(item: $context.alertInfo)
+        .screenCaptureProtected()
     }
     
     var header: some View {

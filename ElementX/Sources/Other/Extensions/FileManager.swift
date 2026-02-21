@@ -30,10 +30,11 @@ extension FileManager {
     
     func copyFileToTemporaryDirectory(file url: URL, with filename: String? = nil) throws -> URL {
         let newURL = URL.temporaryDirectory.appendingPathComponent(filename ?? url.lastPathComponent)
-        
+
         try? removeItem(at: newURL)
         try copyItem(at: url, to: newURL)
-        
+        try newURL.setCompleteFileProtection()
+
         return newURL
     }
 
@@ -41,9 +42,10 @@ extension FileManager {
     func writeDataToTemporaryDirectory(data: Data, fileName: String, withinAppGroupContainer: Bool = false) throws -> URL {
         let baseURL: URL = withinAppGroupContainer ? .appGroupTemporaryDirectory : .temporaryDirectory
         let newURL = baseURL.appendingPathComponent(fileName)
-        
+
         try data.write(to: newURL)
-        
+        try newURL.setCompleteFileProtection()
+
         return newURL
     }
     

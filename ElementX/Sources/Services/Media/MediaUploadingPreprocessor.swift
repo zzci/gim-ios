@@ -137,6 +137,7 @@ struct MediaUploadingPreprocessor {
         do {
             try FileManager.default.createDirectory(at: uniqueFolder, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: url, to: newURL)
+            try newURL.setCompleteFileProtection()
         } catch {
             return .failure(.failedProcessingMedia(error))
         }
@@ -331,6 +332,7 @@ struct MediaUploadingPreprocessor {
         
         do {
             try data.write(to: url)
+            try url.setCompleteFileProtection()
         } catch {
             throw .failedStrippingLocationData
         }
@@ -424,10 +426,11 @@ struct MediaUploadingPreprocessor {
         
         do {
             try data.write(to: thumbnailURL)
+            try thumbnailURL.setCompleteFileProtection()
         } catch {
             throw .failedGeneratingVideoThumbnail(error)
         }
-        
+
         return .init(url: thumbnailURL, height: thumbnail.size.height, width: thumbnail.size.width, mimeType: "image/jpeg", blurhash: blurhash)
     }
     
@@ -472,7 +475,10 @@ struct MediaUploadingPreprocessor {
         // Strip the UUID from the new version
         let newOutputURL = url.deletingLastPathComponent().appendingPathComponent("\(originalFilenameWithoutExtension).mp4")
         
-        do { try FileManager.default.moveItem(at: outputURL, to: newOutputURL) } catch {
+        do {
+            try FileManager.default.moveItem(at: outputURL, to: newOutputURL)
+            try newOutputURL.setCompleteFileProtection()
+        } catch {
             throw .failedConvertingVideo
         }
         

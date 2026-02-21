@@ -160,6 +160,17 @@ extension URL {
     }
 }
 
+// MARK: - File Protection
+
+extension URL {
+    /// Applies `URLFileProtection.complete` to the file at this URL so the file is
+    /// inaccessible when the device is locked. Suitable for user-generated media, voice
+    /// messages, temporary exports and any other files containing user content.
+    func setCompleteFileProtection() throws {
+        try (self as NSURL).setResourceValue(URLFileProtection.complete, forKey: .fileProtectionKey)
+    }
+}
+
 // MARK: - Helpers
 
 extension URL: @retroactive ExpressibleByStringLiteral {

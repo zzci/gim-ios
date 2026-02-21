@@ -292,12 +292,12 @@ final class AppSettings {
     var traceLogPacks: Set<TraceLogPack>
     
     // MARK: - Bug report
-    
+
     let bugReportRageshakeURL: RemotePreference<RageshakeConfiguration> = .init(.disabled)
-    // swiftlint:disable:next force_unwrapping
-    let bugReportSentryURL: URL? = URL(string: "https://4d5bbbd5fbf8fd0228af5eb5ea794853@o4510919240318976.ingest.de.sentry.io/4510919242088528")
-    // swiftlint:disable:next force_unwrapping
-    let bugReportSentryRustURL: URL? = URL(string: "https://4e7ba49579b9edce2c9fd483c74bb416@o4510919240318976.ingest.de.sentry.io/4510919247528016")
+    /// Sentry DSN for Swift crash reporting. Reads from environment / build settings to avoid embedding auth tokens in source.
+    let bugReportSentryURL: URL? = URL(string: ProcessInfo.processInfo.environment["SENTRY_DSN"] ?? "")
+    /// Sentry DSN for Rust SDK crash reporting. Reads from environment / build settings to avoid embedding auth tokens in source.
+    let bugReportSentryRustURL: URL? = URL(string: ProcessInfo.processInfo.environment["SENTRY_DSN_RUST"] ?? "")
     /// The name allocated by the bug report server
     private(set) var bugReportApplicationID = "gim-ios"
     
@@ -350,9 +350,9 @@ final class AppSettings {
     // MARK: - Maps
     
     /// maptiler base url
-    /// Set your MapTiler API key (from https://www.maptiler.com/) to enable maps.
+    /// Set your MapTiler API key via the MAPTILER_API_KEY environment variable / build setting.
     private(set) var mapTilerConfiguration = MapTilerConfiguration(baseURL: "https://api.maptiler.com/maps",
-                                                                   apiKey: "TJGpDrrYrz8Txn1HZSvV",
+                                                                   apiKey: ProcessInfo.processInfo.environment["MAPTILER_API_KEY"],
                                                                    lightStyleID: "9bc819c8-e627-474a-a348-ec144fe3d810",
                                                                    darkStyleID: "dea61faf-292b-4774-9660-58fcef89a7f3")
     

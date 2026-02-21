@@ -35,7 +35,8 @@ enum ShareExtensionPayload: Hashable, Codable {
                 
                 try? FileManager.default.removeItem(at: newURL)
                 try FileManager.default.moveItem(at: mediaFile.url, to: newURL)
-                
+                try newURL.setCompleteFileProtection()
+
                 return mediaFile.replacingURL(with: newURL)
             })
         case .text:
