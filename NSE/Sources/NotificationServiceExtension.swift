@@ -32,6 +32,7 @@ import UserNotifications
 class NotificationServiceExtension: UNNotificationServiceExtension {
     static let receivedWhileOfflineNotificationID = "im.g.message.receivedWhileOfflineNotification"
 
+    private static let configurationLock = NSLock()
     private static var targetConfiguration: Target.ConfigurationResult?
 
     /// Lock protecting `hasHandledFirstNotificationSinceBoot` from concurrent access.
@@ -68,12 +69,15 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
         // the target configuration will fail. We could call exit(0) here, however with the
         // notification filtering entitlement that results in the notification being discarded
         // so we need to wait for the delegate method to be called and bail out there instead.
-        if !BootDetectionManager.isDeviceLockedAfterReboot(containerURL: URL.appGroupContainerDirectory),
-           Self.targetConfiguration == nil {
-            Self.targetConfiguration = Target.nse.configure(logLevel: settings.logLevel,
-                                                            traceLogPacks: settings.traceLogPacks,
-                                                            sentryURL: nil,
-                                                            appHooks: appHooks)
+        if !BootDetectionManager.isDeviceLockedAfterReboot(containerURL: URL.appGroupContainerDirectory) {
+            Self.configurationLock.withLock {
+                if Self.targetConfiguration == nil {
+                    Self.targetConfiguration = Target.nse.configure(logLevel: settings.logLevel,
+                                                                    traceLogPacks: settings.traceLogPacks,
+                                                                    sentryURL: nil,
+                                                                    appHooks: appHooks)
+                }
+            }
         }
         
         super.init()
@@ -90,7 +94,7 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
         // be able to create a session (and even if we could, we would be missing the lightweightTokioRuntime).
         // Additionally, APNs servers only store the most recent notification when the device is powered off.
         // So lets a) skip processing the notification and b) deliver a special "offline" notification as a workaround.
-        guard Self.targetConfiguration != nil else {
+        guard Self.configurationLock.withLock({ Self.targetConfiguration != nil }) else {
             // MXLog isn't configured:
             // swiftlint:disable:next print_deprecation
             print("Device is locked after reboot.")
