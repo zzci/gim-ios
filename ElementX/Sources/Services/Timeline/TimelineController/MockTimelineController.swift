@@ -38,7 +38,9 @@ class MockTimelineController: TimelineControllerProtocol {
     var timelineItems: [RoomTimelineItemProtocol] = RoomTimelineItemFixtures.default
     var timelineItemsTimestamp: [TimelineItemIdentifier: Date] = [:]
     
+    #if DEBUG
     private var client: UITestsSignalling.Client?
+    #endif
     
     static var mediaGallery: MockTimelineController {
         MockTimelineController(timelineKind: .media(.mediaFilesScreen), timelineItems: (0..<5).reduce([]) { partialResult, _ in
@@ -64,12 +66,14 @@ class MockTimelineController: TimelineControllerProtocol {
         callbacks.send(.isLive(true))
         
         guard listenForSignals else { return }
-        
+
+        #if DEBUG
         do {
             try startListening()
         } catch {
             fatalError("Failure setting up signalling: \(error)")
         }
+        #endif
     }
     
     private(set) var focusOnEventCallCount = 0
@@ -91,9 +95,13 @@ class MockTimelineController: TimelineControllerProtocol {
         
         paginationState = TimelinePaginationState(backward: .paginating, forward: .endReached)
         
+        #if DEBUG
         if client == nil {
             try? await simulateBackPagination()
         }
+        #else
+        try? await simulateBackPagination()
+        #endif
         
         return .success(())
     }
@@ -287,14 +295,15 @@ class MockTimelineController: TimelineControllerProtocol {
     }
         
     // MARK: - UI Test signalling
-    
+
+    #if DEBUG
     /// The cancellable used for UI Tests signalling.
     private var signalCancellable: AnyCancellable?
-    
+
     /// Allows the simulation of server responses by listening for signals from UI tests.
     private func startListening() throws {
         let client = try UITestsSignalling.Client(mode: .app)
-        
+
         signalCancellable = client.signals.sink { [weak self] signal in
             Task {
                 do {
@@ -304,10 +313,10 @@ class MockTimelineController: TimelineControllerProtocol {
                 }
             }
         }
-        
+
         self.client = client
     }
-    
+
     /// Handles a UI test signal as necessary.
     private func handleSignal(_ signal: UITestsSignal) async throws {
         switch signal {
@@ -319,31 +328,46 @@ class MockTimelineController: TimelineControllerProtocol {
             break
         }
     }
-    
+
     /// Appends the next incoming item to the `timelineItems` array.
     private func simulateIncomingItem() async throws {
         guard !incomingItems.isEmpty else { return }
-        
+
         let incomingItem = incomingItems.removeFirst()
         timelineItems.append(incomingItem)
         callbacks.send(.updatedTimelineItems(timelineItems: timelineItems, isSwitchingTimelines: false))
-        
+
         try client?.send(.success)
     }
-    
+
     /// Prepends the next chunk of items to the `timelineItems` array.
     private func simulateBackPagination() async throws {
         defer {
             paginationState = TimelinePaginationState(backward: backPaginationResponses.isEmpty ? .endReached : .idle,
                                                       forward: .endReached)
         }
-        
+
         guard !backPaginationResponses.isEmpty else { return }
-        
+
         let newItems = backPaginationResponses.removeFirst()
         timelineItems.insert(contentsOf: newItems, at: 0)
         callbacks.send(.updatedTimelineItems(timelineItems: timelineItems, isSwitchingTimelines: false))
-        
+
         try client?.send(.success)
     }
+    #else
+    /// Prepends the next chunk of items to the `timelineItems` array.
+    private func simulateBackPagination() async throws {
+        defer {
+            paginationState = TimelinePaginationState(backward: backPaginationResponses.isEmpty ? .endReached : .idle,
+                                                      forward: .endReached)
+        }
+
+        guard !backPaginationResponses.isEmpty else { return }
+
+        let newItems = backPaginationResponses.removeFirst()
+        timelineItems.insert(contentsOf: newItems, at: 0)
+        callbacks.send(.updatedTimelineItems(timelineItems: timelineItems, isSwitchingTimelines: false))
+    }
+    #endif
 }

@@ -7,7 +7,9 @@
 //
 
 import Foundation
+#if DEBUG
 import LoremSwiftum
+#endif
 import MatrixRustSDK
 import MatrixRustSDKMocks
 
@@ -45,10 +47,11 @@ extension EventTimelineItem {
                   lazyProvider: LazyTimelineItemProviderSDKMock())
     }
     
+    #if DEBUG
     static var mockMessage: EventTimelineItem {
         let body = Lorem.sentences(Int.random(in: 1...5))
         let messageType = MessageType.text(content: .init(body: body, formatted: nil))
-        
+
         let content = TimelineItemContent.msgLike(content: .init(kind: .message(content: .init(msgType: messageType,
                                                                                                body: body,
                                                                                                isEdited: false,
@@ -57,9 +60,10 @@ extension EventTimelineItem {
                                                                  inReplyTo: nil,
                                                                  threadRoot: nil,
                                                                  threadSummary: nil))
-        
+
         return .init(configuration: .init(content: content))
     }
+    #endif
     
     static func mockCallInvite(sender: String) -> EventTimelineItem {
         .init(configuration: .init(sender: sender, content: .callInvite))

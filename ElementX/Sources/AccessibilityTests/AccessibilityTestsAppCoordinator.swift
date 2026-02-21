@@ -63,6 +63,7 @@ class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
     }
     
     private func setupSignalling() {
+        #if DEBUG
         do {
             let client = try UITestsSignalling.Client(mode: .app)
             client.signals.sink { [weak self] signal in
@@ -79,7 +80,7 @@ class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
                                     try client.send(.accessibilityAudit(.noMorePreviews))
                                     return
                                 }
-                                
+
                                 try client.send(.accessibilityAudit(.nextPreviewReady(name: previewsWrapper.previewName)))
                             } catch {
                                 fatalError("Failed sending signal: \(signal)")
@@ -96,6 +97,7 @@ class AccessibilityTestsAppCoordinator: AppCoordinatorProtocol {
         } catch {
             fatalError("Unable to start client signalling")
         }
+        #endif
     }
 }
 

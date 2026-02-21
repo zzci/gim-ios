@@ -1,7 +1,7 @@
 ---
 name: ElementX
 attributes:
-  ORGANIZATIONNAME: Element
+  ORGANIZATIONNAME: GIM
 
 fileGroups:
 - project.yml
@@ -109,9 +109,6 @@ packages:
   DeviceKit:
     url: https://github.com/devicekit/DeviceKit
     minorVersion: 5.7.0
-  Dynamic:
-    url: https://github.com/mhdhejazi/Dynamic
-    exactVersion: 1.2
   DSWaveformImage:
     url: https://github.com/dmrschmidt/DSWaveformImage
     exactVersion: 14.2.2

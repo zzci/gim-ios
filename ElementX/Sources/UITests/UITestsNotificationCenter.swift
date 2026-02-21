@@ -9,6 +9,7 @@
 import Combine
 import SwiftUI
 
+#if DEBUG
 /// A notification center that can be injected in the app to post notifications
 /// that are sent from the UI tests runner. Usage:
 /// - Create an instance of the center in the screen you want to test and call `startListening`.
@@ -20,11 +21,11 @@ class UITestsNotificationCenter: NotificationCenter, @unchecked Sendable {
     // periphery:ignore - retaining purpose
     private var client: UITestsSignalling.Client?
     private var signalCancellable: AnyCancellable?
-    
+
     /// Starts listening for signals to post notifications.
     func startListening() throws {
         let client = try UITestsSignalling.Client(mode: .app)
-        
+
         signalCancellable = client.signals.sink { [weak self] signal in
             Task {
                 do {
@@ -34,10 +35,10 @@ class UITestsNotificationCenter: NotificationCenter, @unchecked Sendable {
                 }
             }
         }
-        
+
         self.client = client
     }
-    
+
     /// Handles any notification signals, and drops anything else received.
     private func handleSignal(_ signal: UITestsSignal) async throws {
         switch signal {
@@ -48,3 +49,4 @@ class UITestsNotificationCenter: NotificationCenter, @unchecked Sendable {
         }
     }
 }
+#endif

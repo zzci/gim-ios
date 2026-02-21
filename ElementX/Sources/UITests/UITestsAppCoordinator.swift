@@ -98,8 +98,10 @@ class MockScreen: Identifiable {
     let windowManager: SecureWindowManagerProtocol
     let navigationRootCoordinator: NavigationRootCoordinator
     
+    #if DEBUG
     private var client: UITestsSignalling.Client?
-    
+    #endif
+
     private var retainedState = [Any]()
     private var cancellables = Set<AnyCancellable>()
     
@@ -184,13 +186,17 @@ class MockScreen: Identifiable {
                 }
             }
             
+            #if DEBUG
             let notificationCenter = UITestsNotificationCenter()
             do {
                 try notificationCenter.startListening()
             } catch {
                 fatalError("Failed to start listening for notifications.")
             }
-            
+            #else
+            let notificationCenter = NotificationCenter()
+            #endif
+
             let flowCoordinator = AppLockFlowCoordinator(initialState: .unlocked,
                                                          appLockService: appLockService,
                                                          navigationCoordinator: navigationCoordinator,
@@ -472,6 +478,7 @@ class MockScreen: Identifiable {
             let coordinator = RoomScreenCoordinator(parameters: parameters)
             navigationStackCoordinator.setRootCoordinator(coordinator)
             
+            #if DEBUG
             do {
                 let client = try UITestsSignalling.Client(mode: .app)
                 client.signals.sink { [weak self] signal in
@@ -483,8 +490,9 @@ class MockScreen: Identifiable {
             } catch {
                 fatalError("Failure setting up signalling: \(error)")
             }
-            
+
             self.client = client
+            #endif
             return navigationStackCoordinator
         case .roomWithDisclosedPolls:
             let navigationStackCoordinator = NavigationStackCoordinator()
