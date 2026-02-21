@@ -128,8 +128,9 @@ enum A11yIdentifiers {
         let hidden = "authentication_start-hidden"
         let homeserver = "authentication_start-homeserver"
         let homeserverConfirm = "authentication_start-homeserver_confirm"
+        let diagnostics = "authentication_start-diagnostics"
     }
-    
+
     struct ReportContent {
         let ignoreUser = "report_content-ignore_user"
     }

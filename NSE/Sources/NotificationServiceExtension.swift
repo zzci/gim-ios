@@ -182,7 +182,7 @@ class NotificationServiceExtension: UNNotificationServiceExtension {
 
             await handler.processEvent(eventID, roomID: roomID)
 
-            handlersLock.withLock {
+            _ = handlersLock.withLock {
                 notificationHandlers.removeValue(forKey: requestID)
             }
         } catch {

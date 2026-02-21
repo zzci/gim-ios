@@ -23,7 +23,7 @@ private struct ScreenCaptureProtectionModifier: ViewModifier {
         content
             .overlay {
                 if isCaptured {
-                    ZStack(spacing: 0) {
+                    ZStack {
                         Color.compound.bgCanvasDefault
                             .ignoresSafeArea()
                         VStack(spacing: 16) {

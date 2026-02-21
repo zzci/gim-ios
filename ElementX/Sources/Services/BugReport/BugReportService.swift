@@ -147,7 +147,7 @@ class BugReportService: NSObject, BugReportServiceProtocol {
         }
 
         for attachmentURL in attachments {
-            scope.addAttachment(SentryAttachment(path: attachmentURL.path))
+            scope.addAttachment(Attachment(path: attachmentURL.path))
         }
     }
 
