@@ -141,7 +141,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         notificationManager.start()
         
         guard let currentVersion = Version(InfoPlistReader(bundle: .main).bundleShortVersionString) else {
-            fatalError("The app's version number **must** use semver for migration purposes.")
+            MXLog.error("Failed to parse app version from bundle, skipping migration checks")
+            return
         }
         
         if let previousVersion = appSettings.lastVersionLaunched.flatMap(Version.init) {
@@ -538,7 +539,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             case (.signedIn, .clearCache, .initial):
                 clearCache()
             default:
-                fatalError("Unknown transition: \(context)")
+                MXLog.error("Unknown transition: \(context)")
             }
         }
         
@@ -546,7 +547,7 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
             if context.fromState == context.toState {
                 MXLog.error("Failed transition from equal states: \(context.fromState)")
             } else {
-                fatalError("Failed transition with context: \(context)")
+                MXLog.error("Failed transition with context: \(context)")
             }
         }
     }
@@ -592,7 +593,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func runPostSessionSetupTasks() async {
         guard let userSession, let userSessionFlowCoordinator else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         if let storedRoomsToAwait {
@@ -611,7 +613,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
 
     private func startAuthenticationSoftLogout() {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         Task {
@@ -655,7 +658,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func setupUserSession(isNewLogin: Bool) {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         if let serverName = userSession.clientProxy.userIDServerName {
@@ -710,7 +714,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
         
     private func logout(isSoft: Bool) {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         showLoadingIndicator()
@@ -798,7 +803,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func observeUserSessionChanges() {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         userSessionObserver = userSession.callbacks
@@ -853,7 +859,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func clearCache() {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         showLoadingIndicator()
@@ -943,7 +950,8 @@ class AppCoordinator: AppCoordinatorProtocol, AuthenticationFlowCoordinatorDeleg
     
     private func processInlineReply(roomID: String, replyText: String) async {
         guard let userSession else {
-            fatalError("User session not setup")
+            MXLog.error("User session not setup")
+            return
         }
         
         guard case let .joined(roomProxy) = await userSession.clientProxy.roomForIdentifier(roomID) else {
