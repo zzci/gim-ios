@@ -31,25 +31,28 @@ struct TypingIndicatorView: View {
     var content: some View {
         // Plurals with string arguments aren't generated correctly by so we need to work around that
         // https://github.com/SwiftGen/SwiftGen/issues/1089
-        
-        switch typingMembers.members.count {
+
+        // Snapshot members to a local copy to avoid race conditions between count check and element access.
+        let members = typingMembers.members
+
+        switch members.count {
         case 1:
-            let firstMember = typingMembers.members[0]
-            
+            let firstMember = members[0]
+
             Text(firstMember).bold() +
                 Text(L10n.screenRoomTypingNotificationSingularIos)
         case 2:
-            let firstMember = typingMembers.members[0]
-            let lastMember = typingMembers.members[1]
-            
+            let firstMember = members[0]
+            let lastMember = members[1]
+
             Text(L10n.screenRoomTypingTwoMembers(firstMember, lastMember)).bold() +
                 Text(L10n.screenRoomTypingNotificationPluralIos)
         case 3...:
-            let firstMember = typingMembers.members[0]
-            let lastMember = typingMembers.members[1]
-            
+            let firstMember = members[0]
+            let lastMember = members[1]
+
             Text(L10n.tr("Localizable", "screen_room_typing_many_members_first_component_ios", firstMember, lastMember)).bold() +
-                Text(L10n.tr("Localizable", "common_many_members", typingMembers.members.count - 2)).bold() +
+                Text(L10n.tr("Localizable", "common_many_members", members.count - 2)).bold() +
                 Text(L10n.screenRoomTypingNotificationPluralIos)
         default:
             if didShowTextOnce {

@@ -68,10 +68,15 @@ class LoginScreenViewModel: LoginScreenViewModelType, LoginScreenViewModelProtoc
     /// Parses the specified username and looks up the homeserver when a Matrix ID is entered.
     private func parseUsername() {
         let username = state.bindings.username
-        
+
         guard MatrixEntityRegex.isMatrixUserIdentifier(username) else { return }
-        
-        let homeserverDomain = String(username.split(separator: ":")[1])
+
+        let components = username.split(separator: ":")
+        guard components.count > 1 else {
+            MXLog.warning("Username does not contain a homeserver domain: \(username)")
+            return
+        }
+        let homeserverDomain = String(components[1])
         
         startLoading(isInteractionBlocking: false)
         

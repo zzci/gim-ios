@@ -40,7 +40,11 @@ class AuthenticationService: AuthenticationServiceProtocol {
         self.appHooks = appHooks
         
         // When updating these, don't forget to update the reset method too.
-        homeserverSubject = .init(LoginHomeserver(address: appSettings.accountProviders[0], loginMode: .unknown))
+        let defaultProvider = appSettings.accountProviders.first ?? ""
+        if appSettings.accountProviders.isEmpty {
+            MXLog.error("accountProviders is empty during AuthenticationService init")
+        }
+        homeserverSubject = .init(LoginHomeserver(address: defaultProvider, loginMode: .unknown))
         flow = .login
     }
     
@@ -210,7 +214,11 @@ class AuthenticationService: AuthenticationServiceProtocol {
     }
     
     func reset() {
-        homeserverSubject.send(LoginHomeserver(address: appSettings.accountProviders[0], loginMode: .unknown))
+        let defaultProvider = appSettings.accountProviders.first ?? ""
+        if appSettings.accountProviders.isEmpty {
+            MXLog.error("accountProviders is empty during AuthenticationService reset")
+        }
+        homeserverSubject.send(LoginHomeserver(address: defaultProvider, loginMode: .unknown))
         flow = .login
         client = nil
     }
